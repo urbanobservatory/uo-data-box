@@ -1,0 +1,37 @@
+version: "3"
+
+# networks:
+#   rabbitmq:
+
+services:
+  broker:
+    container_name: ${UO_INSTANCE}-broker-${UO_BROKER_CONFIGURATION}
+    build: ../../../
+    image: uo-${UO_INSTANCE}/node
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "2048k"
+        max-file: "100"
+    environment:
+      - UO_BROKER_AMQP_HOST
+      - UO_BROKER_AMQP_PORT
+      - UO_BROKER_AMQP_PASSWORD
+      - UO_BROKER_CONFIGURATION_USERNAME
+      - UO_BROKER_CONFIGURATION_PASSWORD
+    volumes:
+      - ../../:/usr/src/app/src:ro
+      - ../../../cache:/usr/src/app/cache:rw
+      - ../../../archive:/archive:rw
+    ports:
+      - ${UO_BROKER_CONFIGURATION_PORT}:80
+    # networks:
+    #   - rabbitmq
+    entrypoint:
+      - npm
+      - run
+      - start:broker
+      - --
+      - --verbose
+      - --configuration=${UO_BROKER_CONFIGURATION}

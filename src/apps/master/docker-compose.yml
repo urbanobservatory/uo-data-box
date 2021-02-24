@@ -1,0 +1,40 @@
+version: "2.3"
+services:
+  master:
+    build: ../../../
+    image: uo-${UO_INSTANCE}/node
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1024k"
+        max-file: "10"
+    mem_limit: "524288000"
+    volumes:
+      - ../../:/usr/src/app/src:ro
+    environment:
+      - UO_BROKER_AMQP_HOST=${UO_MASTER_BROKER_AMQP_HOST}
+      - UO_BROKER_AMQP_PORT=${UO_MASTER_BROKER_AMQP_PORT}
+      - UO_BROKER_AMQP_USERNAME=${UO_MASTER_BROKER_AMQP_USERNAME}
+      - UO_BROKER_AMQP_PASSWORD=${UO_MASTER_BROKER_AMQP_PASSWORD}
+      - UO_BROKER_QUEUE_STORE=${UO_MASTER_BROKER_AMQP_QUEUE}
+      - UO_DB_HOST
+      - UO_DB_PORT
+      - UO_DB_USER
+      - UO_DB_PASS
+      - UO_DB_NAME
+      - UO_DB_ORGANISATION
+      - UO_DB_SYSTEM
+      - UO_STORAGE_FULL_UPDATE_FREQUENCY
+    entrypoint:
+      - npm
+      - run
+      - start:master
+      - --
+      - --verbose
+    networks:
+      - timescaledb
+networks:
+  timescaledb:
+    external:
+      name: ${UO_INSTANCE}_timescaledb

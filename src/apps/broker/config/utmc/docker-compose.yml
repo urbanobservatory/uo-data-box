@@ -1,0 +1,31 @@
+version: "3"
+services:
+  broker-utmc:
+    container_name: ${UO_INSTANCE}-broker-utmc
+    build: ../../../../../../uo-cam2views/cam2views
+    image: uo-${UO_INSTANCE}/node-cam2views
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1024k"
+        max-file: "10"
+    environment:
+      - UO_BROKER_AMQP_HOST
+      - UO_BROKER_AMQP_PORT
+      - UO_BROKER_AMQP_USERNAME
+      - UO_BROKER_AMQP_PASSWORD
+      - UO_BROKER_EXCHANGE_COV
+      - UO_BROKER_CONFIGURATION_API_USERNAME
+      - UO_BROKER_CONFIGURATION_API_PASSWORD
+    volumes:
+      - ../../../../:/usr/src/app/src:ro
+      - ../../../../../archive:/archive:rw
+      - ../../../../../cache:/usr/src/app/cache:rw
+    entrypoint:
+      - npm
+      - run
+      - start:broker
+      - --
+      - --configuration=UTMC.OpenFeeds
+      - --verbose

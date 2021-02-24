@@ -1,0 +1,26 @@
+version: "3"
+services:
+  rabbitmq:
+    container_name: ${UO_INSTANCE}-rabbitmq
+    image: rabbitmq:3.8-management
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1024k"
+        max-file: "10"
+    # networks:
+    #   - rabbitmq
+    environment:
+      - UO_INSTANCE
+      - RABBITMQ_NODENAME
+    ports:
+      - ${RABBITMQ_PORT_DATA}:5672
+      - ${RABBITMQ_PORT_ADMIN}:15672
+      - ${RABBITMQ_PORT_MONITOR}:15692
+    volumes:
+      - ${RABBITMQ_DEFINITIONS}:/opt/definitions.json:ro
+      - ./rabbitmq.config:/etc/rabbitmq/rabbitmq.config:ro
+      - ./enabled_plugins:/etc/rabbitmq/enabled_plugins:ro
+# networks:
+#   rabbitmq:

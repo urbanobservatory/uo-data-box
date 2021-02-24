@@ -1,0 +1,109 @@
+version: "2.3"
+
+networks:
+  stream:
+  api:
+  web:
+    external: true
+
+services:
+  stream-server:
+    container_name: ${UO_INSTANCE}-web-stream
+    restart: unless-stopped
+    build: ../../../
+    image: uo-${UO_INSTANCE}/node
+    networks:
+      - web
+      - stream
+    labels:
+      - "traefik.enable=true"
+      - "traefik.port=3000"
+      - "traefik.frontend.redirect.regex=^(.*)/stream$$"
+      - "traefik.frontend.redirect.replacement=$$1/stream"
+      - "traefik.frontend.rule=Host:api.${UO_DOMAIN}.${UO_HOST};PathPrefix:/stream;ReplacePathRegex: ^/stream/(.*) /$$1"
+    expose:
+      - 3000
+    # log demon into /etc/docker/daemon.json
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1024k"
+        max-file: "10"
+    mem_limit: 204857600
+    environment:
+      - UO_DB_HOST=${UO_DATA_HOST}
+      - UO_DB_PORT=${POSTGRES_PORT}
+      - UO_DB_USER
+      - UO_DB_PASS
+      - UO_DB_NAME
+      - UO_DB_ORGANISATION
+      - UO_DB_SYSTEM
+      - UO_WEBSOCKET_SERVER_PORT=3000
+      - UO_BROKER_QUEUE_STREAM=${UO_STREAM_QUEUE}
+      - UO_BROKER_AMQP_HOST=${UO_STREAM_AMQP_HOST}
+      - UO_BROKER_AMQP_PORT=${UO_STREAM_AMQP_PORT}
+      - UO_BROKER_AMQP_USERNAME=${UO_STREAM_AMQP_USERNAME}
+      - UO_BROKER_AMQP_PASSWORD=${UO_STREAM_AMQP_PASSWORD}
+    volumes:
+      - ../../:/usr/src/app/src:ro
+    entrypoint:
+      - npm
+      - run
+      - start:stream
+      - --
+      - --verbose
+
+  api-server:
+    container_name: ${UO_INSTANCE}-web-api
+    restart: unless-stopped
+    build: ../../../
+    image: uo-${UO_INSTANCE}/node
+    networks:
+      - web
+      - api
+    labels:
+      - "traefik.enable=true"
+      - "traefik.port=3001"
+      - "traefik.frontend.rateLimit.rateSet.api.period=1s"
+      - "traefik.frontend.rateLimit.rateSet.api.burst=20"
+      - "traefik.frontend.rateLimit.rateSet.api.average=10"
+      - "traefik.frontend.rateLimit.extractorFunc=client.ip"
+      - "traefik.frontend.redirect.regex=^(.*)/api/v2$$"
+      - "traefik.frontend.redirect.replacement=$$1/api/v2"
+      - "traefik.frontend.rule=Host:api.${UO_DOMAIN}.${UO_HOST};PathPrefix:/api/v2;ReplacePathRegex: ^/api/v2[\/.0-9]+a/(.*)$$ /api/v2/$$1"
+    expose:
+      - 3001
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1024k"
+        max-file: "10"
+    mem_limit: 1073741824
+    memswap_limit: 1073741824
+    environment:
+      - UO_BROKER_QUEUE_STREAM=${UO_STREAM_QUEUE}
+      - UO_BROKER_AMQP_HOST=${UO_STREAM_AMQP_HOST}
+      - UO_BROKER_AMQP_PORT=${UO_STREAM_AMQP_PORT}
+      - UO_BROKER_AMQP_USERNAME=${UO_STREAM_AMQP_USERNAME}
+      - UO_BROKER_AMQP_PASSWORD=${UO_STREAM_AMQP_PASSWORD}
+      - UO_DB_HOST=${UO_DATA_HOST}
+      - UO_DB_PORT=${POSTGRES_PORT}
+      - UO_DOMAIN
+      - UO_HOST
+      - UO_DB_USER
+      - UO_DB_PASS
+      - UO_DB_NAME
+      - UO_DB_ORGANISATION
+      - UO_DB_SYSTEM
+      - UO_WEB_FILE_BASE
+      - UO_API_BASE
+      - UO_API_URL_EXCLUSIONS
+      - UO_API_RESTRICT_KEY
+    volumes:
+      - ../../:/usr/src/app/src:ro
+    entrypoint:
+      - npm
+      - run
+      - start:api
+      - --
+      - --verbose

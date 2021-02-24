@@ -1,0 +1,5 @@
+# The archive and cache directories can be HUGE...
+archive/*
+cache/*
+trace.log
+.gitignore
