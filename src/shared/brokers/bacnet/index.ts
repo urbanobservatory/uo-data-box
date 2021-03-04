@@ -1,3 +1,3 @@
-export * from './controller';
-export * from './enums';
-export * from './manager';
+export * from './controller'
+export * from './enums'
+export * from './manager'

@@ -1,18 +1,19 @@
 export class Config {
-  static defaults: {[key: string]: string} = {};
+  static defaults: { [key: string]: string } = {}
 
-  static addDefaults(values: {[key: string]: string}) {
+  static addDefaults(values: { [key: string]: string }) {
     Config.defaults = {
       ...Config.defaults,
-      ...values
-    };
+      ...values,
+    }
   }
 
-  static getValue(key: string) {
-    const envKey = `UO_${key.toUpperCase()}`;
-    if (process.env[envKey]) {
-      return process.env[envKey];
+  static getValue(key: string): string {
+    const envKey = `UO_${key.toUpperCase()}`
+    const value = process.env[envKey]
+    if (typeof value !== 'undefined') {
+      return value
     }
-    return Config.defaults[key];
+    return Config.defaults[key]
   }
 }

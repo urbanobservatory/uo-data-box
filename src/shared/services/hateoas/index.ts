@@ -1,1 +1,1 @@
-export * from './hateoas';
+export * from './hateoas'

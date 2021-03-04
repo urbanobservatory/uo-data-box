@@ -1,5 +1,5 @@
-import { API, APIAcquisitionBehaviour } from "shared/brokers";
-import { Config as AppConfig } from "shared/services/config";
+import { API, APIAcquisitionBehaviour } from 'shared/brokers'
+import { Config as AppConfig } from 'shared/services/config'
 
 import {
   cameraImageFilename,
@@ -11,30 +11,30 @@ import {
   getJourneyTimePlateMatches,
   utmcUpdated,
   utmcToKey,
-} from "./parsers";
-import { classifyImage } from "./classifier";
+} from './parsers'
+import { classifyImage } from './classifier'
 
 const apiCredentials = {
-  username: AppConfig.getValue("broker_configuration_api_username"),
-  password: AppConfig.getValue("broker_configuration_api_password"),
-};
+  username: AppConfig.getValue('broker_configuration_api_username'),
+  password: AppConfig.getValue('broker_configuration_api_password'),
+}
 
 export const OpenFeeds = {
   requiredServices: () => [
     // CCTV images
     API.AddController({
       getMetadata: getCameraMetadata,
-      protocol: "HTTPS",
+      protocol: 'HTTPS',
       discovery: {
         autoDiscovery: true,
         autoDiscoveryInterval: 3600000,
-        path: () => "/api/v1/cctv/static",
+        path: () => '/api/v1/cctv/static',
         instanceToKey: utmcToKey,
         ...apiCredentials,
       },
       updateInterval: 20000,
-      address: "www.netraveldata.co.uk",
-      name: "UTMC Open Camera Feeds",
+      address: 'www.netraveldata.co.uk',
+      name: 'UTMC Open Camera Feeds',
       acquisition: {
         path: () => `/api/v1/cctv/dynamic`,
         ...apiCredentials,
@@ -49,17 +49,17 @@ export const OpenFeeds = {
     // Car park occupancy
     API.AddController({
       getMetadata: getCarParkMetadata,
-      protocol: "HTTPS",
+      protocol: 'HTTPS',
       discovery: {
         autoDiscovery: true,
         autoDiscoveryInterval: 3600000,
-        path: () => "/api/v1/carpark/static",
+        path: () => '/api/v1/carpark/static',
         instanceToKey: utmcToKey,
         ...apiCredentials,
       },
       updateInterval: 20000,
-      address: "www.netraveldata.co.uk",
-      name: "UTMC Open Car Park Feeds",
+      address: 'www.netraveldata.co.uk',
+      name: 'UTMC Open Car Park Feeds',
       acquisition: {
         path: () => `/api/v1/carpark/dynamic`,
         ...apiCredentials,
@@ -72,17 +72,17 @@ export const OpenFeeds = {
     // Journey time links
     API.AddController({
       getMetadata: getJourneyTimeMetadata,
-      protocol: "HTTPS",
+      protocol: 'HTTPS',
       discovery: {
         autoDiscovery: true,
         autoDiscoveryInterval: 3600000,
-        path: () => "/api/v2/journeytime/static",
+        path: () => '/api/v2/journeytime/static',
         instanceToKey: (i) => `${utmcToKey(i)}:JourneyTime`,
         ...apiCredentials,
       },
       updateInterval: 20000,
-      address: "www.netraveldata.co.uk",
-      name: "UTMC Open Journey Time Feeds",
+      address: 'www.netraveldata.co.uk',
+      name: 'UTMC Open Journey Time Feeds',
       acquisition: {
         path: () => `/api/v2/journeytime/dynamic`,
         ...apiCredentials,
@@ -95,17 +95,17 @@ export const OpenFeeds = {
     // Plates in
     API.AddController({
       getMetadata: getJourneyTimePlatesIn,
-      protocol: "HTTPS",
+      protocol: 'HTTPS',
       discovery: {
         autoDiscovery: true,
         autoDiscoveryInterval: 3600000,
-        path: () => "/api/v2/journeytime/static",
+        path: () => '/api/v2/journeytime/static',
         instanceToKey: (i) => `${utmcToKey(i)}:PlatesIn`,
         ...apiCredentials,
       },
       updateInterval: 19000,
-      address: "www.netraveldata.co.uk",
-      name: "UTMC Open Journey Time Feeds",
+      address: 'www.netraveldata.co.uk',
+      name: 'UTMC Open Journey Time Feeds',
       acquisition: {
         path: () => `/api/v2/journeytime/dynamic`,
         ...apiCredentials,
@@ -118,17 +118,17 @@ export const OpenFeeds = {
     // Plates out
     API.AddController({
       getMetadata: getJourneyTimePlatesOut,
-      protocol: "HTTPS",
+      protocol: 'HTTPS',
       discovery: {
         autoDiscovery: true,
         autoDiscoveryInterval: 3600000,
-        path: () => "/api/v2/journeytime/static",
+        path: () => '/api/v2/journeytime/static',
         instanceToKey: (i) => `${utmcToKey(i)}:PlatesOut`,
         ...apiCredentials,
       },
       updateInterval: 22000,
-      address: "www.netraveldata.co.uk",
-      name: "UTMC Open Journey Time Feeds",
+      address: 'www.netraveldata.co.uk',
+      name: 'UTMC Open Journey Time Feeds',
       acquisition: {
         path: () => `/api/v2/journeytime/dynamic`,
         ...apiCredentials,
@@ -141,17 +141,17 @@ export const OpenFeeds = {
     // Plate matches
     API.AddController({
       getMetadata: getJourneyTimePlateMatches,
-      protocol: "HTTPS",
+      protocol: 'HTTPS',
       discovery: {
         autoDiscovery: true,
         autoDiscoveryInterval: 3600000,
-        path: () => "/api/v2/journeytime/static",
+        path: () => '/api/v2/journeytime/static',
         instanceToKey: (i) => `${utmcToKey(i)}:PlateMatches`,
         ...apiCredentials,
       },
       updateInterval: 21000,
-      address: "www.netraveldata.co.uk",
-      name: "UTMC Open Journey Time Feeds",
+      address: 'www.netraveldata.co.uk',
+      name: 'UTMC Open Journey Time Feeds',
       acquisition: {
         path: () => `/api/v2/journeytime/dynamic`,
         ...apiCredentials,
@@ -162,4 +162,4 @@ export const OpenFeeds = {
       },
     }),
   ],
-};
+}

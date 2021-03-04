@@ -1,17 +1,17 @@
-import {Model} from 'objection';
+import { Model } from 'objection'
 
-import {cacheResource} from '../drivers/cache';
-import {StorageBase, SQL} from '../drivers/sql';
+import { cacheResource } from '../drivers/cache'
+import { StorageBase, SQL } from '../drivers/sql'
 
 @cacheResource({
   expiration: 3600,
-  uniqueId: 'derivativeId'
+  uniqueId: 'derivativeId',
 })
 export class Derivative extends StorageBase {
-  static tableName: string = SQL.TableName('derivative');
+  static tableName: string = SQL.TableName('derivative')
 
   // Table attributes
-  public derivativeId: string;
-  public name: string;
-  public equation: string;
+  public derivativeId!: string
+  public name!: string
+  public equation!: string
 }

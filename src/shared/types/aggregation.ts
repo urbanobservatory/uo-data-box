@@ -1,18 +1,18 @@
-import {Model} from 'objection';
+import { Model } from 'objection'
 
-import {cacheResource} from '../drivers/cache';
-import {StorageBase, SQL} from '../drivers/sql';
+import { cacheResource } from '../drivers/cache'
+import { StorageBase, SQL } from '../drivers/sql'
 
 @cacheResource({
   expiration: 3600,
-  uniqueId: 'aggregationId'
+  uniqueId: 'aggregationId',
 })
 export class Aggregation extends StorageBase {
-  static tableName: string = SQL.TableName('aggregation');
+  static tableName: string = SQL.TableName('aggregation')
 
   // Table attributes
-  public aggregationId: string;
-  public name: string;
-  public method: string;
-  public interval: number;
+  public aggregationId!: string
+  public name!: string
+  public method!: string
+  public interval!: number
 }

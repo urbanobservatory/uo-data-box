@@ -1,2 +1,2 @@
-import * as argv from 'argv';
-export {argv as arguments};
+import * as argv from 'argv'
+export { argv as arguments }

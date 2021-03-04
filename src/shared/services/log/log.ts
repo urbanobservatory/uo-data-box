@@ -1,5 +1,5 @@
-import * as log from 'winston';
-import * as toYAML from 'winston-console-formatter';
+import * as log from 'winston'
+const toYAML = require('winston-console-formatter')
 
 const logColours = {
   error: 'red',
@@ -7,27 +7,30 @@ const logColours = {
   info: 'green',
   verbose: 'yellow',
   debug: 'purple',
-  silly: 'purple'
-};
+  silly: 'purple',
+}
 
-const logDebug = process.argv.join(' ').indexOf('--debug') >= 0;
-const logVerbose = process.argv.join(' ').indexOf('--verbose') >= 0;
+const logDebug = process.argv.join(' ').indexOf('--debug') >= 0
+const logVerbose = process.argv.join(' ').indexOf('--verbose') >= 0
 
 function getLogLevel() {
-  if (logDebug) return 'debug';
-  if (logVerbose) return 'verbose';
-  return 'info';
+  if (logDebug) return 'debug'
+  if (logVerbose) return 'verbose'
+  return 'info'
 }
 
 log.configure({
-  level: getLogLevel()
-});
+  level: getLogLevel(),
+})
 log.add(
   log.transports.Console,
-  toYAML.config({}, {
-    colors: logColours
-  })
-);
-log.addColors(logColours);
+  toYAML.config(
+    {},
+    {
+      colors: logColours,
+    }
+  )
+)
+log.addColors(logColours)
 
-export {log};
+export { log }

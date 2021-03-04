@@ -1,3 +1,3 @@
-export * from './address';
-export * from './controller';
-export * from './manager';
+export * from './address'
+export * from './controller'
+export * from './manager'

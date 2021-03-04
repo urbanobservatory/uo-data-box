@@ -1,2 +1,2 @@
-export * from './cache';
-export * from './decorator';
+export * from './cache'
+export * from './decorator'

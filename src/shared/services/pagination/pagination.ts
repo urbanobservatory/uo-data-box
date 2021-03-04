@@ -1,46 +1,54 @@
 export interface Pagination {
-  pageNumber?: number;
-  pageSize?: number;
-  pageCount?: number;
-  total?: number;
+  pageNumber?: number
+  pageSize?: number
+  pageCount?: number
+  total?: number
 }
 
 export interface Response {
-  pagination: Pagination;
-  items: any[];
+  pagination: Pagination
+  items: any[]
 }
 
 export class PageHandler {
   public static wrapOutput(pagination: Pagination, items: any): Response {
-    const imposedPagination = this.sanitise(pagination);
+    const imposedPagination = this.sanitise(pagination)
     return {
       pagination: {
         ...imposedPagination,
         pageNumber: imposedPagination.pageNumber,
-        pageCount: Math.ceil(items.total / imposedPagination.pageSize),
-        total: items.total
+        // TODO: should never be undefined
+        pageCount: Math.ceil(items.total / imposedPagination.pageSize!),
+        total: items.total,
       },
-      items: items.results
-    };
+      items: items.results,
+    }
   }
 
   public static sanitise(pagination: Pagination): Pagination {
     if (isNaN(parseInt(<any>pagination.pageSize, 10))) {
-      pagination.pageSize = 10;
+      pagination.pageSize = 10
     }
     if (isNaN(parseInt(<any>pagination.pageNumber, 10))) {
-      pagination.pageNumber = 1;
+      pagination.pageNumber = 1
     }
-    const pageNumber = Math.max(1, parseInt(<any>pagination.pageNumber, 10) || 1);
-    const pageSize = Math.max(5, Math.min(100, parseInt(<any>pagination.pageSize, 10) || 10));
+    const pageNumber = Math.max(
+      1,
+      parseInt(<any>pagination.pageNumber, 10) || 1
+    )
+    const pageSize = Math.max(
+      5,
+      Math.min(100, parseInt(<any>pagination.pageSize, 10) || 10)
+    )
     return {
       pageNumber,
-      pageSize
-    };
+      pageSize,
+    }
   }
 
   public static impose(pagination: Pagination) {
-    const sanePaging = this.sanitise(pagination);
-    return [sanePaging.pageNumber - 1, sanePaging.pageSize];
+    const sanePaging = this.sanitise(pagination)
+    // TODO: should never be undefined
+    return [sanePaging.pageNumber! - 1, sanePaging.pageSize]
   }
 }

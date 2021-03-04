@@ -1,21 +1,30 @@
-import {Action} from 'routing-controllers';
+import { Action } from 'routing-controllers'
 
-import {GenericErrorHandler} from './error';
-import {EntityController, FeedController, SummaryController, TimeseriesController} from 'shared/controllers';
-import {Config as AppConfig, log} from 'shared/services';
+import { GenericErrorHandler } from './error'
+import {
+  EntityController,
+  FeedController,
+  SummaryController,
+  TimeseriesController,
+} from 'shared/controllers'
+import { Config as AppConfig, log } from 'shared/services'
 
-const majorVersion = 2;
+const majorVersion = 2
 
-const routePrefix = `/api/v${majorVersion}`;
+const routePrefix = `/api/v${majorVersion}`
 
 export const routingOptions = () => {
-  const [apiUrl, apiDomain] = AppConfig.getValue('api_base').match(/:\/\/([^\/]+)\//);
+  const [apiUrl, apiDomain]: any = AppConfig.getValue('api_base').match(
+    /:\/\/([^\/]+)\//
+  )
 
-  let instanceControllers = [];
+  let instanceControllers: any = []
   try {
-    instanceControllers = Object.values(require(`./${apiDomain}/controllers`));
+    instanceControllers = Object.values(require(`./${apiDomain}/controllers`))
   } catch (e) {
-    log.verbose('Unable to load additional controllers for the specified API base.');
+    log.verbose(
+      'Unable to load additional controllers for the specified API base.'
+    )
   }
 
   return {
@@ -27,23 +36,21 @@ export const routingOptions = () => {
       FeedController,
       TimeseriesController,
       SummaryController,
-      ...instanceControllers
+      ...instanceControllers,
     ],
-    middlewares: [
-      GenericErrorHandler
-    ],
+    middlewares: [GenericErrorHandler],
     currentUserChecker: async (action: Action) => {
       // TODO: Implement authorisation processing
-      return false;
+      return false
     },
     authorizationChecker: async (action: Action, roles: string[]) => {
       // TODO: Implement authorisation processing
-      return false;
-    }
+      return false
+    },
   }
-};
+}
 
 export const hateoasOptions = {
   majorVersion,
-  baseURL: AppConfig.getValue('api_base')
-};
+  baseURL: AppConfig.getValue('api_base'),
+}
