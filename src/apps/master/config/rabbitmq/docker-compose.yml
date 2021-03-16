@@ -9,8 +9,9 @@ services:
       options:
         max-size: '1024k'
         max-file: '10'
-    # networks:
-    #   - rabbitmq
+    # needed for testing on docker localhost
+    networks:
+      - rabbitmq
     environment:
       - UO_INSTANCE
       - RABBITMQ_NODENAME
@@ -22,5 +23,6 @@ services:
       - ./definitions.json:/opt/definitions.json:ro
       - ./rabbitmq.config:/etc/rabbitmq/rabbitmq.config:ro
       - ./enabled_plugins:/etc/rabbitmq/enabled_plugins:ro
-# networks:
-#   rabbitmq:
+networks:
+  # needed for testing on docker localhost
+  rabbitmq:

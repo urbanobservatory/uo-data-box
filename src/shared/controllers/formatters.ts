@@ -42,8 +42,12 @@ export function csvTransform(transform: Function) {
   return (request: Request, response: Response, next: any) => {
     const originalJson = response.json
     response.json = (json, ...j) => {
+      // HACK: outputAS not instance of String anymore?
       const requestQuery =
-        request.query.outputAs instanceof String ? request.query.outputAs : ''
+        request.query.outputAs instanceof String ||
+        typeof request.query.outputAs === 'string'
+          ? request.query.outputAs
+          : ''
       if (request.query.outputAs && requestQuery.toLowerCase() === 'csv') {
         const { headers, data, filename } = transform(json)
 

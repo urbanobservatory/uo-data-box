@@ -23,6 +23,7 @@ export interface HTTPControllerOptions extends ControllerOptions {
 //   uploadDir: "/public",
 // };
 
+// for the actual server
 export interface HTTPRequestOptions {
   method?: string
   contentLength?: number

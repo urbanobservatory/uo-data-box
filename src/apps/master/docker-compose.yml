@@ -1,15 +1,15 @@
-version: "2.3"
+version: '2.3'
 services:
   master:
     build: ../../../
     image: uo-${UO_INSTANCE}/node
     restart: always
     logging:
-      driver: "json-file"
+      driver: 'json-file'
       options:
-        max-size: "1024k"
-        max-file: "10"
-    mem_limit: "524288000"
+        max-size: '1024k'
+        max-file: '10'
+    mem_limit: '524288000'
     volumes:
       - ../../:/usr/src/app/src:ro
     environment:
@@ -34,7 +34,12 @@ services:
       - --verbose
     networks:
       - timescaledb
+      - rabbitmq
 networks:
   timescaledb:
     external:
       name: ${UO_INSTANCE}_timescaledb
+  # needed for testing on docker localhost
+  rabbitmq:
+    external:
+      name: ${UO_INSTANCE}_rabbitmq
