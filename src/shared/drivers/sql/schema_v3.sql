@@ -171,7 +171,7 @@ CREATE TABLE ${TABLE_PREFIX}unit
  *  - https://urbanobservatory.stoplight.io/docs/standards-namespace/models/platform.json
  * uo-core table: entity
  */
-CREATE TABLE platform
+CREATE TABLE ${TABLE_PREFIX}platform
 (
   platform_id uuid NOT NULL DEFAULT gen_random_uuid(),
   location_id uuid,
@@ -192,7 +192,7 @@ CREATE TABLE platform
  *  - https://urbanobservatory.stoplight.io/docs/standards-namespace/models/location.json
  * uo-core table: position and spacial
  */
-CREATE TABLE "location"
+CREATE TABLE "${TABLE_PREFIX}location"
 (
   location_id uuid NOT NULL DEFAULT gen_random_uuid(),
   geometry geometry NOT NULL,
@@ -315,7 +315,6 @@ CREATE TABLE ${TABLE_PREFIX}brokerage
 );
 
 /* UO Standards: these should link as collections
- *
  *
 */
 CREATE TABLE ${TABLE_PREFIX}timeseries
