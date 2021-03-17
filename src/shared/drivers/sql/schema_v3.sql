@@ -1,4 +1,5 @@
 ﻿DROP TABLE IF EXISTS ${TABLE_PREFIX}aggregation CASCADE;
+DROP TABLE IF EXISTS property CASCADE;
 DROP TABLE IF EXISTS ${TABLE_PREFIX}assessment CASCADE;
 DROP TABLE IF EXISTS ${TABLE_PREFIX}broker CASCADE;
 DROP TABLE IF EXISTS ${TABLE_PREFIX}brokerage CASCADE;
@@ -6,7 +7,7 @@ DROP TABLE IF EXISTS ${TABLE_PREFIX}condition CASCADE;
 DROP TABLE IF EXISTS ${TABLE_PREFIX}contact CASCADE;
 DROP TABLE IF EXISTS ${TABLE_PREFIX}derivative CASCADE;
 DROP TABLE IF EXISTS ${TABLE_PREFIX}entity CASCADE;
-DROP TABLE IF EXISTS ${TABLE_PREFIX}feed CASCADE;
+DROP TABLE IF EXISTS ${TABLE_PREFIX}sensor CASCADE;
 DROP TABLE IF EXISTS ${TABLE_PREFIX}hardware CASCADE;
 DROP TABLE IF EXISTS ${TABLE_PREFIX}licence CASCADE;
 DROP TABLE IF EXISTS ${TABLE_PREFIX}organisation CASCADE;
@@ -31,17 +32,17 @@ DROP TABLE IF EXISTS ${TABLE_PREFIX}data_event CASCADE;
 DROP TABLE IF EXISTS ${TABLE_PREFIX}data_file CASCADE;
 DROP TABLE IF EXISTS ${TABLE_PREFIX}data_json CASCADE;
 
-DROP INDEX IF EXISTS "IDX: ${TABLE_PREFIX}feed::technology" CASCADE;
-DROP INDEX IF EXISTS "IDX: ${TABLE_PREFIX}feed::provider" CASCADE;
-DROP INDEX IF EXISTS "IDX: ${TABLE_PREFIX}feed::hardware" CASCADE;
-DROP INDEX IF EXISTS "IDX: ${TABLE_PREFIX}feed::entity" CASCADE;
-DROP INDEX IF EXISTS "IDX: ${TABLE_PREFIX}feed::brokerage" CASCADE;
+DROP INDEX IF EXISTS "IDX: ${TABLE_PREFIX}sensor::technology" CASCADE;
+DROP INDEX IF EXISTS "IDX: ${TABLE_PREFIX}sensor::provider" CASCADE;
+DROP INDEX IF EXISTS "IDX: ${TABLE_PREFIX}sensor::hardware" CASCADE;
+DROP INDEX IF EXISTS "IDX: ${TABLE_PREFIX}sensor::entity" CASCADE;
+DROP INDEX IF EXISTS "IDX: ${TABLE_PREFIX}sensor::brokerage" CASCADE;
 DROP INDEX IF EXISTS "IDX: ${TABLE_PREFIX}provider::organisation" CASCADE;
-DROP INDEX IF EXISTS "IDX: ${TABLE_PREFIX}service::feed" CASCADE;
+DROP INDEX IF EXISTS "IDX: ${TABLE_PREFIX}service::sensor_id" CASCADE;
 DROP INDEX IF EXISTS "IDX: ${TABLE_PREFIX}spatial::location_id" CASCADE;
 DROP INDEX IF EXISTS "IDX: ${TABLE_PREFIX}technology::organisation_id" CASCADE;
-DROP INDEX IF EXISTS "IDX: ${TABLE_PREFIX}timeseries::feed" CASCADE;
-DROP INDEX IF EXISTS "IDX: ${TABLE_PREFIX}brokerage::feed" CASCADE;
+DROP INDEX IF EXISTS "IDX: ${TABLE_PREFIX}timeseries::sensor_id" CASCADE;
+DROP INDEX IF EXISTS "IDX: ${TABLE_PREFIX}brokerage::sensor_id" CASCADE;
 DROP INDEX IF EXISTS "IDX: ${TABLE_PREFIX}storage::storage_id" CASCADE;
 
 CREATE TABLE ${TABLE_PREFIX}aggregation
@@ -253,46 +254,60 @@ CREATE TABLE ${TABLE_PREFIX}platform
 
  /* UO Standards: observable-properties
  *  - https://github.com/urbanobservatory/standards-instances/blob/master/instances/observable-properties.json
- * uo-data-box table: feed
+ * uo-data-box table: ?
  */
 CREATE TABLE ${TABLE_PREFIX}property
 (
-  property_id serial NOT NULL, -- feed_id
-  observed_property varchar(50) NOT NULL, --metric aka observable-properties
+  observable_property varchar(255) NOT NULL, -- metric aka observable property
   label varchar (100),
   description varchar(255),
   unit_id varchar(50) NOT NULL,
   same_as text[],
   term_status varchar(10),
-  CONSTRAINT "PK: property::property_id" PRIMARY KEY (property_id),
+  CONSTRAINT "PK: property::observable_property" PRIMARY KEY (observable_property),
   CONSTRAINT "FK: property::unit_id" FOREIGN KEY (unit_id)
       REFERENCES ${TABLE_PREFIX}unit (unit_id) MATCH SIMPLE
       ON UPDATE NO ACTION ON DELETE NO ACTION
 );
---observed-property (add unit)
--- CREATE TABLE ${TABLE_PREFIX}feed
--- (
---   feed_id uuid NOT NULL DEFAULT gen_random_uuid(),
---   metric character varying(255) NOT NULL,
---   entity_id uuid NOT NULL,
---   provider_id uuid,
---   hardware_id uuid,
---   technology_id uuid,
---   meta jsonb,
---   CONSTRAINT "PK: ${TABLE_PREFIX}feed::feed_id" PRIMARY KEY (feed_id),
---   CONSTRAINT "FK: ${TABLE_PREFIX}feed::entity_id" FOREIGN KEY (entity_id)
---       REFERENCES ${TABLE_PREFIX}entity (entity_id) MATCH SIMPLE
---       ON UPDATE NO ACTION ON DELETE NO ACTION,
---   CONSTRAINT "FK: ${TABLE_PREFIX}feed::hardware_id" FOREIGN KEY (hardware_id)
---       REFERENCES ${TABLE_PREFIX}hardware (hardware_id) MATCH SIMPLE
---       ON UPDATE NO ACTION ON DELETE SET NULL,
---   CONSTRAINT "FK: ${TABLE_PREFIX}feed::provider_id" FOREIGN KEY (provider_id)
---       REFERENCES ${TABLE_PREFIX}provider (provider_id) MATCH SIMPLE
---       ON UPDATE NO ACTION ON DELETE SET NULL,
---   CONSTRAINT "FK: ${TABLE_PREFIX}feed::technology_id" FOREIGN KEY (technology_id)
---       REFERENCES ${TABLE_PREFIX}technology (technology_id) MATCH SIMPLE
---       ON UPDATE NO ACTION ON DELETE SET NULL
--- );
+
+-- constraints
+
+-- ALTER TABLE property
+--   ADD CONSTRAINT "CON: property UNIQUE"
+--   UNIQUE (observable_property);
+
+ /* UO Standards: observable-properties
+ *  - ???
+ * uo-data-box table: feed
+ */
+
+
+CREATE TABLE ${TABLE_PREFIX}sensor
+(
+  sensor_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  observable_property varchar(255) NOT NULL,
+  platform_id uuid NOT NULL,
+  provider_id uuid,
+  hardware_id uuid,
+  technology_id uuid,
+  meta jsonb,
+  CONSTRAINT "PK: ${TABLE_PREFIX}sensor::sensor_id" PRIMARY KEY (sensor_id),
+  CONSTRAINT "FK: ${TABLE_PREFIX}sensor::platform_id" FOREIGN KEY (platform_id)
+      REFERENCES ${TABLE_PREFIX}platform (platform_id) MATCH SIMPLE
+      ON UPDATE NO ACTION ON DELETE NO ACTION,
+  CONSTRAINT "FK: ${TABLE_PREFIX}sensor::hardware_id" FOREIGN KEY (hardware_id)
+      REFERENCES ${TABLE_PREFIX}hardware (hardware_id) MATCH SIMPLE
+      ON UPDATE NO ACTION ON DELETE SET NULL,
+  CONSTRAINT "FK: ${TABLE_PREFIX}sensor::provider_id" FOREIGN KEY (provider_id)
+      REFERENCES ${TABLE_PREFIX}provider (provider_id) MATCH SIMPLE
+      ON UPDATE NO ACTION ON DELETE SET NULL,
+  CONSTRAINT "FK: ${TABLE_PREFIX}sensor::technology_id" FOREIGN KEY (technology_id)
+      REFERENCES ${TABLE_PREFIX}technology (technology_id) MATCH SIMPLE
+      ON UPDATE NO ACTION ON DELETE SET NULL,
+  CONSTRAINT "FK: ${TABLE_PREFIX}property::observable_property" FOREIGN KEY (observable_property)
+      REFERENCES ${TABLE_PREFIX}property (observable_property) MATCH SIMPLE
+      ON UPDATE NO ACTION ON DELETE SET NULL,    
+);
 
 CREATE TABLE ${TABLE_PREFIX}broker
 (
@@ -306,53 +321,19 @@ CREATE TABLE ${TABLE_PREFIX}broker
 CREATE TABLE ${TABLE_PREFIX}brokerage
 (
   brokerage_id uuid NOT NULL DEFAULT gen_random_uuid(),
-  feed_id uuid NOT NULL,
+  sensor_id uuid NOT NULL,
   broker_id uuid NOT NULL,
   source_id character varying(255) NOT NULL,
   meta jsonb,
   CONSTRAINT "PK: ${TABLE_PREFIX}brokerage::brokerage_id" PRIMARY KEY (brokerage_id),
-  CONSTRAINT "FK: ${TABLE_PREFIX}brokerage::feed_id" FOREIGN KEY (feed_id)
-      REFERENCES ${TABLE_PREFIX}feed (feed_id) MATCH SIMPLE
+  CONSTRAINT "FK: ${TABLE_PREFIX}brokerage::sensor_id" FOREIGN KEY (sensor_id)
+      REFERENCES ${TABLE_PREFIX}sensor (sensor_id) MATCH SIMPLE
       ON UPDATE NO ACTION ON DELETE NO ACTION,
   CONSTRAINT "FK: ${TABLE_PREFIX}brokerage::broker_id" FOREIGN KEY (broker_id)
       REFERENCES ${TABLE_PREFIX}broker (broker_id) MATCH SIMPLE
       ON UPDATE NO ACTION ON DELETE NO ACTION
 );
 
-/* UO Standards: observation
- *  - https://urbanobservatory.stoplight.io/docs/standards-namespace/models/observation.json
- * uo-data-box table: some combination of feed and entity ?
- */
---  CREATE TABLE observation
--- (
---   observation_id uuid NOT NULL DEFAULT gen_random_uuid(),  
---   observed_property varchar(50) NOT NULL, -- observed_property
---   aggregation_id uuid, -- aggregation
---   collection_id serial NOT NULL, -- refers to actual data in data tables
---   storage_suffix varchar(30) NOT NULL, -- type of storage
---   -- provider_id uuid,
---   -- made by sensor or hardwareID
---   device_id varchar(100) NOT NULL, -- made_by_sensor
---   location_id uuid, -- location
---   technology_id uuid,
---   meta jsonb, -- disiplines, used_procedures
---   CONSTRAINT "PK: observation::observation_id" PRIMARY KEY (observation_id),
---   CONSTRAINT "FK: observation::location_id" FOREIGN KEY (location_id)
---       REFERENCES "location" (location_id) MATCH SIMPLE
---       ON UPDATE NO ACTION ON DELETE NO ACTION,
---   CONSTRAINT "FK: observation::technology_id" FOREIGN KEY (technology_id)
---       REFERENCES technology (technology_id) MATCH SIMPLE
---       ON UPDATE NO ACTION ON DELETE NO ACTION,
---   CONSTRAINT "FK: observation::aggregation_id" FOREIGN KEY (aggregation_id)
---       REFERENCES aggregation (aggregation_id) MATCH SIMPLE
---       ON UPDATE NO ACTION ON DELETE NO ACTION,
---   CONSTRAINT "FK: observation::storage_suffix" FOREIGN KEY (storage_suffix)
---       REFERENCES storage (suffix) MATCH SIMPLE
---       ON UPDATE NO ACTION ON DELETE NO ACTION                
---   -- CONSTRAINT "FK: observation::provider_id" FOREIGN KEY (provider_id)
---   --     REFERENCES provider (provider_id) MATCH SIMPLE
---   --     ON UPDATE NO ACTION ON DELETE SET NULL,              
--- );
 
 /* UO Standards: these should link as timeseries collections
  *  these are additional collections
@@ -364,10 +345,10 @@ CREATE TABLE ${TABLE_PREFIX}timeseries
   timeseries_num serial,
   storage_id smallint,
   unit_id varchar(50),
-  feed_id uuid,
+  sensor_id uuid,
   CONSTRAINT "PK: ${TABLE_PREFIX}timeseries::timeseries_id" PRIMARY KEY (timeseries_id),
-  CONSTRAINT "FK: ${TABLE_PREFIX}timeseries::feed_id" FOREIGN KEY (feed_id)
-      REFERENCES ${TABLE_PREFIX}feed (feed_id) MATCH SIMPLE
+  CONSTRAINT "FK: ${TABLE_PREFIX}timeseries::sensor_id" FOREIGN KEY (sensor_id)
+      REFERENCES ${TABLE_PREFIX}sensor (sensor_id) MATCH SIMPLE
       ON UPDATE NO ACTION ON DELETE NO ACTION,
   CONSTRAINT "FK: ${TABLE_PREFIX}timeseries::storage_id" FOREIGN KEY (storage_id)
       REFERENCES ${TABLE_PREFIX}storage (storage_id) MATCH SIMPLE
@@ -413,34 +394,34 @@ CREATE TABLE ${TABLE_PREFIX}service
   "time" timestamp without time zone,
   condition_id uuid,
   notes text,
-  feed_id uuid,
+  sensor_id uuid,
   CONSTRAINT "PK: ${TABLE_PREFIX}service::service_id" PRIMARY KEY (service_id),
-  CONSTRAINT "FK: ${TABLE_PREFIX}service::feed_id" FOREIGN KEY (feed_id)
-      REFERENCES ${TABLE_PREFIX}feed (feed_id) MATCH SIMPLE
+  CONSTRAINT "FK: ${TABLE_PREFIX}service::sensor_id" FOREIGN KEY (sensor_id)
+      REFERENCES ${TABLE_PREFIX}sensor (sensor_id) MATCH SIMPLE
       ON UPDATE NO ACTION ON DELETE NO ACTION,
   CONSTRAINT "FK: ${TABLE_PREFIX}service::condition_id" FOREIGN KEY (condition_id)
       REFERENCES ${TABLE_PREFIX}condition (condition_id) MATCH SIMPLE
       ON UPDATE NO ACTION ON DELETE NO ACTION
 );
 
-CREATE INDEX "IDX: ${TABLE_PREFIX}feed::entity_id"
-  ON ${TABLE_PREFIX}feed
+CREATE INDEX "IDX: ${TABLE_PREFIX}sensor::platform_id"
+  ON ${TABLE_PREFIX}sensor
   USING btree
-  (entity_id);
-ALTER TABLE ${TABLE_PREFIX}feed CLUSTER ON "IDX: ${TABLE_PREFIX}feed::entity_id";
+  (platform_id);
+ALTER TABLE ${TABLE_PREFIX}sensor CLUSTER ON "IDX: ${TABLE_PREFIX}sensor::platform_id";
 
-CREATE INDEX "IDX: ${TABLE_PREFIX}feed::hardware_id"
-  ON ${TABLE_PREFIX}feed
+CREATE INDEX "IDX: ${TABLE_PREFIX}sensor::hardware_id"
+  ON ${TABLE_PREFIX}sensor
   USING btree
   (hardware_id);
 
-CREATE INDEX "IDX: ${TABLE_PREFIX}feed::provider_id"
-  ON ${TABLE_PREFIX}feed
+CREATE INDEX "IDX: ${TABLE_PREFIX}sensor::provider_id"
+  ON ${TABLE_PREFIX}sensor
   USING btree
   (provider_id);
 
-CREATE INDEX "IDX: ${TABLE_PREFIX}feed::technology_id"
-  ON ${TABLE_PREFIX}feed
+CREATE INDEX "IDX: ${TABLE_PREFIX}sensor::technology_id"
+  ON ${TABLE_PREFIX}sensor
   USING btree
   (technology_id);
 
@@ -449,10 +430,10 @@ CREATE INDEX "IDX: ${TABLE_PREFIX}provider::organisation_id"
   USING btree
   (organisation_id);
 
-CREATE INDEX "IDX: ${TABLE_PREFIX}service::feed_id"
+CREATE INDEX "IDX: ${TABLE_PREFIX}service::sensor_id"
   ON ${TABLE_PREFIX}service
   USING btree
-  (feed_id);
+  (sensor_id);
 
 CREATE INDEX "IDX: ${TABLE_PREFIX}spatial::location_id"
   ON ${TABLE_PREFIX}spatial
@@ -464,15 +445,15 @@ CREATE INDEX "IDX: ${TABLE_PREFIX}technology::organisation_id"
   USING btree
   (organisation_id);
 
-CREATE INDEX "IDX: ${TABLE_PREFIX}timeseries::feed_id"
+CREATE INDEX "IDX: ${TABLE_PREFIX}timeseries::sensor_id"
   ON ${TABLE_PREFIX}timeseries
   USING btree
-  (feed_id);
+  (sensor_id);
 
-CREATE INDEX "IDX: ${TABLE_PREFIX}brokerage::feed_id"
+CREATE INDEX "IDX: ${TABLE_PREFIX}brokerage::sensor_id"
   ON ${TABLE_PREFIX}brokerage
   USING btree
-  (feed_id);
+  (sensor_id);
 
 CREATE INDEX "IDX: ${TABLE_PREFIX}brokerage::broker_id"
   ON ${TABLE_PREFIX}brokerage
@@ -491,7 +472,7 @@ CREATE UNIQUE INDEX "IDX: ${TABLE_PREFIX}entity::name"
 
 ALTER TABLE ${TABLE_PREFIX}brokerage
   ADD CONSTRAINT "CON: ${TABLE_PREFIX}brokerage UNIQUE"
-  UNIQUE (feed_id, source_id, broker_id);
+  UNIQUE (sensor_id, source_id, broker_id);
 
 ALTER TABLE ${TABLE_PREFIX}unit
   ADD CONSTRAINT "CON: ${TABLE_PREFIX}unit UNIQUE"
@@ -526,7 +507,7 @@ INSERT INTO ${TABLE_PREFIX}storage (name, suffix) VALUES ('JSON', 'json');
 */
 /* UO Standards: observation
  *  - https://urbanobservatory.stoplight.io/docs/standards-namespace/models/observation.json
- * uo-data-box table: from data tables comes resultTime and hasResult objects
+ * uo-data-box table: from data_* tables comes resultTime and hasResult objects and information from feed/sensor
  */
 
 --  - JSON
@@ -654,8 +635,8 @@ CREATE INDEX "IDX: ${TABLE_PREFIX}entity::meta"
   USING gin
   (meta jsonb_path_ops);
 
-CREATE INDEX "IDX: ${TABLE_PREFIX}feed::meta"
-  ON ${TABLE_PREFIX}feed
+CREATE INDEX "IDX: ${TABLE_PREFIX}sensor::meta"
+  ON ${TABLE_PREFIX}sensor
   USING gin
   (meta jsonb_path_ops);
 
