@@ -174,6 +174,8 @@ CREATE TABLE ${TABLE_PREFIX}deployment
   deployment_id varchar(100) NOT NULL,
   label varchar(100),
   description varchar(255), 
+  started timestamp without time zone,
+  active boolean DEFAULT TRUE,
   notes text,
   -- public boolean DEFAULT TRUE,
   CONSTRAINT "PK: ${TABLE_PREFIX}deployment::deployment_id" PRIMARY KEY (deployment_id)
@@ -193,6 +195,7 @@ CREATE TABLE "${TABLE_PREFIX}location"
   type varchar(50),
   properties jsonb NOT NULL,
   description varchar(255),
+  notes text,
   CONSTRAINT "PK: ${TABLE_PREFIX}location::location_id" PRIMARY KEY (location_id)
 );
 
