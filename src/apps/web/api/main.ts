@@ -24,7 +24,6 @@ AppConfig.addDefaults({
 initialiseSQL()
 initialiseUpdaters()
 initialiseHATEOAS(hateoasOptions)
-
 ;(async function apiService() {
   // This is all very temporary until we implement routing controllers
   // and fancy decorators for the API :-)
