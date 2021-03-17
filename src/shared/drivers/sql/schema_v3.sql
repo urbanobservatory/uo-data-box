@@ -498,13 +498,7 @@ INSERT INTO ${TABLE_PREFIX}storage (name, suffix) VALUES ('File', 'file');
 INSERT INTO ${TABLE_PREFIX}storage (name, suffix) VALUES ('JSON', 'json');
 
 -- Hypertables with Timescale
-/*
- * "resultTime": "2021-03-17T13:31:10.000Z",
-      "hasResult": {
-        "value": 1.9,
-        "unit": "metre-per-second"
-      }
-*/
+
 /* UO Standards: observation
  *  - https://urbanobservatory.stoplight.io/docs/standards-namespace/models/observation.json
  * uo-data-box table: from data_* tables comes resultTime and hasResult objects and information from feed/sensor
