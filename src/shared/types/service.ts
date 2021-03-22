@@ -16,7 +16,7 @@ export class Service extends StorageBase {
   public serviceId!: string
   public time!: Date
   public notes!: string
-  public feed!: string
+  public sensor!: string
 
   private condition!: Condition
 

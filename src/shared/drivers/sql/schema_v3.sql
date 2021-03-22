@@ -6,12 +6,12 @@ DROP TABLE IF EXISTS ${TABLE_PREFIX}brokerage CASCADE;
 DROP TABLE IF EXISTS ${TABLE_PREFIX}condition CASCADE;
 DROP TABLE IF EXISTS ${TABLE_PREFIX}contact CASCADE;
 DROP TABLE IF EXISTS ${TABLE_PREFIX}derivative CASCADE;
-DROP TABLE IF EXISTS ${TABLE_PREFIX}entity CASCADE;
+DROP TABLE IF EXISTS ${TABLE_PREFIX}platform CASCADE;
 DROP TABLE IF EXISTS ${TABLE_PREFIX}sensor CASCADE;
 DROP TABLE IF EXISTS ${TABLE_PREFIX}hardware CASCADE;
 DROP TABLE IF EXISTS ${TABLE_PREFIX}licence CASCADE;
 DROP TABLE IF EXISTS ${TABLE_PREFIX}organisation CASCADE;
-DROP TABLE IF EXISTS ${TABLE_PREFIX}location CASCADE;
+DROP TABLE IF EXISTS ${TABLE_PREFIX}position CASCADE;
 DROP TABLE IF EXISTS ${TABLE_PREFIX}provider CASCADE;
 DROP TABLE IF EXISTS ${TABLE_PREFIX}service CASCADE;
 DROP TABLE IF EXISTS ${TABLE_PREFIX}spatial CASCADE;
@@ -39,7 +39,7 @@ DROP INDEX IF EXISTS "IDX: ${TABLE_PREFIX}sensor::platform_id" CASCADE;
 DROP INDEX IF EXISTS "IDX: ${TABLE_PREFIX}sensor::brokerage_id" CASCADE;
 DROP INDEX IF EXISTS "IDX: ${TABLE_PREFIX}provider::organisation_id" CASCADE;
 DROP INDEX IF EXISTS "IDX: ${TABLE_PREFIX}service::sensor_id" CASCADE;
-DROP INDEX IF EXISTS "IDX: ${TABLE_PREFIX}spatial::location_id" CASCADE;
+DROP INDEX IF EXISTS "IDX: ${TABLE_PREFIX}spatial::position_id" CASCADE;
 DROP INDEX IF EXISTS "IDX: ${TABLE_PREFIX}technology::organisation_id" CASCADE;
 DROP INDEX IF EXISTS "IDX: ${TABLE_PREFIX}timeseries::sensor_id" CASCADE;
 DROP INDEX IF EXISTS "IDX: ${TABLE_PREFIX}brokerage::sensor_id" CASCADE;
@@ -156,7 +156,7 @@ CREATE TABLE ${TABLE_PREFIX}technology
 CREATE TABLE ${TABLE_PREFIX}unit
 (
   unit_id varchar(50) NOT NULL,
-  label varchar(100),
+  name varchar(100),
   symbol varchar(10),
   description varchar(255),
   same_as text[],
@@ -172,7 +172,7 @@ CREATE TABLE ${TABLE_PREFIX}unit
 CREATE TABLE ${TABLE_PREFIX}deployment
 (
   deployment_id varchar(100) NOT NULL,
-  label varchar(100),
+  name varchar(100),
   description varchar(255), 
   started timestamp without time zone,
   active boolean DEFAULT TRUE,
@@ -188,40 +188,38 @@ CREATE TABLE ${TABLE_PREFIX}deployment
  *  uo-data-box table: position and spacial
  *  leaving spacial for actual geom
  */
-CREATE TABLE "${TABLE_PREFIX}location"
-(
-  location_id uuid NOT NULL DEFAULT gen_random_uuid(),
-  platform_id uuid
-  type varchar(50),
-  properties jsonb NOT NULL,
-  description varchar(255),
-  notes text,
-  CONSTRAINT "PK: ${TABLE_PREFIX}location::location_id" PRIMARY KEY (location_id)
-);
-
-
--- CREATE TABLE "${TABLE_PREFIX}position"
+-- CREATE TABLE "${TABLE_PREFIX}location"
 -- (
---   position_id uuid NOT NULL DEFAULT gen_random_uuid(),
---   entity_id uuid,
---   description character varying(255),
+--   location_id uuid NOT NULL DEFAULT gen_random_uuid(),
+--   platform_id uuid
+--   type varchar(50),
+--   properties jsonb NOT NULL,
+--   description varchar(255),
 --   notes text,
---   installed timestamp without time zone,
---   CONSTRAINT "PK: ${TABLE_PREFIX}position::position_id" PRIMARY KEY (position_id),
---   CONSTRAINT "FK: ${TABLE_PREFIX}position::entity_id" FOREIGN KEY (entity_id)
---       REFERENCES ${TABLE_PREFIX}entity (entity_id) MATCH SIMPLE
---       ON UPDATE NO ACTION ON DELETE SET NULL
+--   CONSTRAINT "PK: ${TABLE_PREFIX}location::location_id" PRIMARY KEY (location_id)
 -- );
+
+
+CREATE TABLE "${TABLE_PREFIX}position"
+(
+  position_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  type varchar(50),
+  description character varying(255),
+  properties jsonb NOT NULL,
+  notes text,
+  -- installed timestamp without time zone, -- will be in deployments
+  CONSTRAINT "PK: ${TABLE_PREFIX}position::position_id" PRIMARY KEY (position_id)
+);
 
 CREATE TABLE ${TABLE_PREFIX}spatial
 (
   spatial_id uuid NOT NULL DEFAULT gen_random_uuid(),
-  location_id uuid NOT NULL,
-  description character varying(255),
+  position_id uuid NOT NULL,
+  description varchar(255),
   geometry geometry,
   CONSTRAINT "PK: ${TABLE_PREFIX}spatial::spatial_id" PRIMARY KEY (spatial_id),
-  CONSTRAINT "FK: ${TABLE_PREFIX}spatial::location_id" FOREIGN KEY (location_id)
-      REFERENCES "${TABLE_PREFIX}location" (location_id) MATCH SIMPLE
+  CONSTRAINT "FK: ${TABLE_PREFIX}spatial::position_id" FOREIGN KEY (position_id)
+      REFERENCES "${TABLE_PREFIX}position" (position_id) MATCH SIMPLE
       ON UPDATE NO ACTION ON DELETE NO ACTION
 );
 
@@ -231,19 +229,19 @@ CREATE TABLE ${TABLE_PREFIX}spatial
  */
 CREATE TABLE ${TABLE_PREFIX}platform
 (
-  platform_id uuid NOT NULL DEFAULT gen_random_uuid(),
-  location_id uuid,
+  platform_id uuid NOT NULL DEFAULT gen_random_uuid(), -- TODO: make human readable
+  position_id uuid,
   deployment_id varchar(100),
-  label varchar(100), -- entity name
+  name varchar(255), -- entity name or platform label TODO: perhaps change to label
   description varchar(255),  
   meta jsonb,
   notes text, -- this might be redundant field
   CONSTRAINT "PK: ${TABLE_PREFIX}platform::platform_id" PRIMARY KEY (platform_id),
-  CONSTRAINT "FK: ${TABLE_PREFIX}platform::location_id" FOREIGN KEY (location_id)
-      REFERENCES "${TABLE_PREFIX}location" (location_id) MATCH SIMPLE
+  CONSTRAINT "FK: ${TABLE_PREFIX}platform::position_id" FOREIGN KEY (position_id)
+      REFERENCES "${TABLE_PREFIX}position" (position_id) MATCH SIMPLE
       ON UPDATE NO ACTION ON DELETE NO ACTION,
   CONSTRAINT "FK: ${TABLE_PREFIX}platform::deployment_id" FOREIGN KEY (deployment_id)
-      REFERENCES deployment (deployment_id) MATCH SIMPLE
+      REFERENCES ${TABLE_PREFIX}deployment (deployment_id) MATCH SIMPLE
       ON UPDATE NO ACTION ON DELETE NO ACTION
 );
 
@@ -261,13 +259,13 @@ CREATE TABLE ${TABLE_PREFIX}platform
  */
 CREATE TABLE ${TABLE_PREFIX}property
 (
-  observable_property varchar(255) NOT NULL, -- metric aka observable property
+  property_id varchar(255) NOT NULL, -- metric aka observable property
   label varchar (100),
   description varchar(255),
   unit_id varchar(50) NOT NULL,
   same_as text[],
   term_status varchar(10),
-  CONSTRAINT "PK: property::observable_property" PRIMARY KEY (observable_property),
+  CONSTRAINT "PK: property::property_id" PRIMARY KEY (property_id),
   CONSTRAINT "FK: property::unit_id" FOREIGN KEY (unit_id)
       REFERENCES ${TABLE_PREFIX}unit (unit_id) MATCH SIMPLE
       ON UPDATE NO ACTION ON DELETE NO ACTION
@@ -277,7 +275,7 @@ CREATE TABLE ${TABLE_PREFIX}property
 
 -- ALTER TABLE property
 --   ADD CONSTRAINT "CON: property UNIQUE"
---   UNIQUE (observable_property);
+--   UNIQUE (property_id);
 
  /* UO Standards: observable-properties
  *  - ???
@@ -288,7 +286,7 @@ CREATE TABLE ${TABLE_PREFIX}property
 CREATE TABLE ${TABLE_PREFIX}sensor
 (
   sensor_id uuid NOT NULL DEFAULT gen_random_uuid(),
-  observable_property varchar(255) NOT NULL,
+  property_id varchar(255) NOT NULL,
   platform_id uuid NOT NULL,
   provider_id uuid,
   hardware_id uuid,
@@ -307,9 +305,9 @@ CREATE TABLE ${TABLE_PREFIX}sensor
   CONSTRAINT "FK: ${TABLE_PREFIX}sensor::technology_id" FOREIGN KEY (technology_id)
       REFERENCES ${TABLE_PREFIX}technology (technology_id) MATCH SIMPLE
       ON UPDATE NO ACTION ON DELETE SET NULL,
-  CONSTRAINT "FK: ${TABLE_PREFIX}property::observable_property" FOREIGN KEY (observable_property)
-      REFERENCES ${TABLE_PREFIX}property (observable_property) MATCH SIMPLE
-      ON UPDATE NO ACTION ON DELETE SET NULL,    
+  CONSTRAINT "FK: ${TABLE_PREFIX}property::property_id" FOREIGN KEY (property_id)
+      REFERENCES ${TABLE_PREFIX}property (property_id) MATCH SIMPLE
+      ON UPDATE NO ACTION ON DELETE SET NULL
 );
 
 CREATE TABLE ${TABLE_PREFIX}broker
@@ -438,10 +436,10 @@ CREATE INDEX "IDX: ${TABLE_PREFIX}service::sensor_id"
   USING btree
   (sensor_id);
 
-CREATE INDEX "IDX: ${TABLE_PREFIX}spatial::location_id"
+CREATE INDEX "IDX: ${TABLE_PREFIX}spatial::position_id"
   ON ${TABLE_PREFIX}spatial
   USING btree
-  (location_id);
+  (position_id);
 
 CREATE INDEX "IDX: ${TABLE_PREFIX}technology::organisation_id"
   ON ${TABLE_PREFIX}technology
@@ -468,8 +466,8 @@ CREATE UNIQUE INDEX "IDX: ${TABLE_PREFIX}broker::name"
    USING btree
    (name ASC NULLS LAST);
 
-CREATE UNIQUE INDEX "IDX: ${TABLE_PREFIX}entity::name"
-   ON ${TABLE_PREFIX}entity
+CREATE UNIQUE INDEX "IDX: ${TABLE_PREFIX}platform::name"
+   ON ${TABLE_PREFIX}platform
    USING btree
    (name ASC NULLS LAST);
 
@@ -627,8 +625,8 @@ CREATE TABLE ${TABLE_PREFIX}data_file
 SELECT create_hypertable('${TABLE_PREFIX}data_file', 'time', chunk_time_interval => interval '21 days');
 
 -- Meta indexes
-CREATE INDEX "IDX: ${TABLE_PREFIX}entity::meta"
-  ON ${TABLE_PREFIX}entity
+CREATE INDEX "IDX: ${TABLE_PREFIX}platform::meta"
+  ON ${TABLE_PREFIX}platform
   USING gin
   (meta jsonb_path_ops);
 

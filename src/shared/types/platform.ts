@@ -10,39 +10,42 @@ import { parseSearchTerms } from 'shared/services/search'
 
 import { Brokerage } from './brokerage'
 import { Position, PositionProperties } from './position'
-import { Feed, FeedProperties } from './feed'
+import { Sensor, SensorProperties } from './sensor'
 
-export interface EntityProperties {
-  entityId?: string
+export interface PlatformProperties {
+  platformId?: string
   name: string
   meta: any
   position?: PositionProperties[]
-  feed?: FeedProperties[]
+  sensor?: SensorProperties[]
 }
 
 @cacheResource({
   expiration: 300,
-  uniqueId: 'entityId',
+  uniqueId: 'platformId',
 })
-export class Entity extends StorageBase implements EntityProperties {
-  static tableName: string = SQL.TableName('entity')
-  static idColumn: string = 'entity_id'
+export class Platform extends StorageBase implements PlatformProperties {
+  static tableName: string = SQL.TableName('platform')
+  static idColumn: string = 'platform_id'
+  // FIXME: according to the uo-standards this should be a GeoJSON object
+  // https://urbanobservatory.stoplight.io/docs/standards-namespace/models/location.json
   static defaultEager: string = `
     position.[
       spatial
     ],
-    feed.[
-      ${Feed.defaultEager}
+    sensor.[
+      ${Sensor.defaultEager}
     ]
   `
 
   // Table attributes
-  public entityId!: string
+  public platformId!: string
   public name!: string
   public meta!: any
 
+  public inDeployment!: string
   public position!: Position[]
-  public feed!: Feed[]
+  public sensor!: Sensor[]
 
   // Table relations
   static relationMappings = {
@@ -50,34 +53,34 @@ export class Entity extends StorageBase implements EntityProperties {
       relation: Model.HasManyRelation,
       modelClass: Position,
       join: {
-        from: `${SQL.TableName('entity')}.entity_id`,
-        to: `${SQL.TableName('position')}.entity_id`,
+        from: `${SQL.TableName('platform')}.platform_id`,
+        to: `${SQL.TableName('position')}.platform_id`,
       },
     },
-    feed: {
+    sensor: {
       relation: Model.HasManyRelation,
-      modelClass: Feed,
+      modelClass: Sensor,
       join: {
-        from: `${SQL.TableName('entity')}.entity_id`,
-        to: `${SQL.TableName('feed')}.entity_id`,
+        from: `${SQL.TableName('platform')}.platform_id`,
+        to: `${SQL.TableName('sensor')}.platform_id`,
       },
     },
   }
 
   public static async assert(
-    e: EntityProperties,
+    e: PlatformProperties,
     trx?: Transaction,
-    instance?: Entity
+    instance?: Platform
   ): Promise<any> {
-    const entityId = e.entityId || (instance && instance.entityId)
-    let entity: any = null
+    const platformId = e.platformId || (instance && instance.platformId)
+    let platform: any = null
 
-    if (!entityId) {
-      entity = await this.create(e, trx)
+    if (!platformId) {
+      platform = await this.create(e, trx)
     }
 
-    if (!instance && e.entityId) {
-      instance = await Entity.getById(e.entityId, trx)
+    if (!instance && e.platformId) {
+      instance = await Platform.getById(e.platformId, trx)
     }
 
     if (instance && instance.shouldPatch(e)) {
@@ -85,51 +88,52 @@ export class Entity extends StorageBase implements EntityProperties {
         .skipUndefined()
         .patch(<any>{ ...e })
         .where({
-          entity_id: instance.entityId,
+          platform_id: instance.platformId,
         })
-      entity = await Entity.getById(instance.entityId, trx)
+      platform = await Platform.getById(instance.platformId, trx)
     }
 
     await Promise.all(
-      (e.feed || []).map(async (f: FeedProperties) => {
-        return Feed.assert(
+      (e.sensor || []).map(async (f: SensorProperties) => {
+        return Sensor.assert(
           {
             ...f,
-            entityId: e.entityId || entity.entityId,
+            platformId: e.platformId || platform.platformId,
           },
           trx,
-          ((instance && instance.feed) || []).find((eb: Feed) =>
+          ((instance && instance.sensor) || []).find((eb: Sensor) =>
             eb.isEquivalent(f)
           )
         )
       })
     )
 
-    return entity || instance
+    return platform || instance
   }
 
   public static async create(
-    e: EntityProperties,
+    e: PlatformProperties,
     trx?: Transaction
   ): Promise<any> {
-    const entity = await this.query(trx).insert(<any>{
+    const platform = await this.query(trx).insert(<any>{
       name: e.name,
       meta: e.meta,
+      inDeplyment: e.meta.inDeployment || null,
     })
-    return entity
+    return platform
   }
 
   public static async getByFriendlyName(
-    entity: string,
+    platform: string,
     trx?: Transaction
-  ): Promise<Entity> {
+  ): Promise<Platform> {
     const set = await this.namedQuery(
-      `Get entity with the loose name '${entity}'`,
+      `Get platform with the loose name '${platform}'`,
       trx
     )
-      .where('name', '~*', fuzzyName(entity))
-      .eager(`[ ${Entity.defaultEager} ]`)
-      .modifyEager('feed.[service]', (builder: any) => {
+      .where('name', '~*', fuzzyName(platform))
+      .eager(`[ ${Platform.defaultEager} ]`)
+      .modifyEager('sensor.[service]', (builder: any) => {
         builder.orderBy('time', 'desc').limit(1)
       })
     if (Array.isArray(set) && set.length > 1)
@@ -138,13 +142,16 @@ export class Entity extends StorageBase implements EntityProperties {
   }
 
   public static async getById(
-    entityId: string,
+    platformId: string,
     trx?: Transaction
-  ): Promise<Entity> {
-    return await this.namedQuery(`Get entity with the ID '${entityId}'`, trx)
-      .findOne({ entity_id: entityId })
-      .eager(`[ ${Entity.defaultEager} ]`)
-      .modifyEager('feed.[service]', (builder: any) => {
+  ): Promise<Platform> {
+    return await this.namedQuery(
+      `Get platform with the ID '${platformId}'`,
+      trx
+    )
+      .findOne({ platform_id: platformId })
+      .eager(`[ ${Platform.defaultEager} ]`)
+      .modifyEager('sensor.[service]', (builder: any) => {
         builder.orderBy('time', 'desc').limit(1)
       })
   }
@@ -152,61 +159,66 @@ export class Entity extends StorageBase implements EntityProperties {
   public static async getIdFromName(
     name: string,
     trx?: Transaction
-  ): Promise<Entity> {
-    return await this.namedQuery(`Get entity ID only from name '${name}'`, trx)
-      .select('entity_id')
+  ): Promise<Platform> {
+    return await this.namedQuery(
+      `Get platform ID only from name '${name}'`,
+      trx
+    )
+      .select('platform_id')
       .findOne({ name: name })
   }
 
   public static async getIndex(): Promise<any[]> {
-    const allEntities = Entity.namedQuery('Get summary for all entities')
-      .select('entity.entity_id', 'name')
-      .alias('entity')
+    const allEntities = Platform.namedQuery('Get summary for all entities')
+      .select('platform.platform_id', 'name')
+      .alias('platform')
       .orderBy('name')
-      .eagerAlgorithm(Entity.JoinEagerAlgorithm)
-      .eager('[feed]')
-      .modifyEager('[feed]', (builder: any) => {
-        builder.select('feed_id', 'metric')
+      .eagerAlgorithm(Platform.JoinEagerAlgorithm)
+      .eager('[sensor]')
+      .modifyEager('[sensor]', (builder: any) => {
+        builder.select('sensor_id', 'metric')
       })
 
     return allEntities
   }
 
   public static async getAll(preload?: boolean): Promise<any[]> {
-    const entityBatchSize = 50
-    const entitySet: any[] = []
-    let entityOffset = 0
+    const platformBatchSize = 50
+    const platformSet: any[] = []
+    let platformOffset = 0
 
-    while (entityOffset < 1000000) {
-      log.verbose(`Loading entities starting at ${entityOffset}...`)
+    while (platformOffset < 1000000) {
+      log.verbose(`Loading entities starting at ${platformOffset}...`)
       const allEntities = await (preload
-        ? Entity.query()
-        : Entity.namedQuery('Get all entities')
+        ? Platform.query()
+        : Platform.namedQuery('Get all entities')
       )
         .orderBy('name')
-        .offset(entityOffset)
-        .limit(entityBatchSize)
+        .offset(platformOffset)
+        .limit(platformBatchSize)
         .eager(`[ ${this.defaultEager} ]`)
-        .modifyEager('feed', (builder: any) => {
+        .modifyEager('sensor', (builder: any) => {
           builder.orderBy('metric')
         })
-        .modifyEager('feed.[service]', (builder: any) => {
+        .modifyEager('sensor.[service]', (builder: any) => {
           builder.orderBy('time', 'desc').limit(1)
         })
 
       if (preload && allEntities && allEntities.length) {
-        allEntities.forEach((entity: Entity) => this.precacheQueries(entity))
+        allEntities.forEach((platform: Platform) =>
+          this.precacheQueries(platform)
+        )
       }
 
       if (!allEntities.length) {
-        return entitySet
+        return platformSet
       } else {
-        entitySet.push.apply(entitySet, allEntities)
-        entityOffset += entityBatchSize
+        platformSet.push.apply(platformSet, allEntities)
+        platformOffset += platformBatchSize
       }
     }
 
-    return entitySet
+    return platformSet
   }
 
   public static async getPaginated(
@@ -228,34 +240,34 @@ export class Entity extends StorageBase implements EntityProperties {
     }
 
     return (
-      Entity.namedQuery(
+      Platform.namedQuery(
         `Get entities on page ${paging[0]} size ${
           paging[1]
         } criteria ${JSON.stringify(criteria || {})}`
       )
         .orderBy('name')
         .eager(`[ ${this.defaultEager} ]`)
-        .modifyEager('feed.[service]', (builder: any) =>
+        .modifyEager('sensor.[service]', (builder: any) =>
           builder.orderBy('time', 'desc').limit(1)
         )
-        .modifyEager('feed.[brokerage]', (builder: any) =>
+        .modifyEager('sensor.[brokerage]', (builder: any) =>
           builder.eagerAlgorithm(Model.JoinEagerAlgorithm)
         )
-        .modifyEager('feed.[hardware]', (builder: any) =>
+        .modifyEager('sensor.[hardware]', (builder: any) =>
           builder.eagerAlgorithm(Model.JoinEagerAlgorithm)
         )
-        .modifyEager('feed.[technology]', (builder: any) =>
+        .modifyEager('sensor.[technology]', (builder: any) =>
           builder.eagerAlgorithm(Model.JoinEagerAlgorithm)
         )
         // Filtering options below...
-        .modifyEager('feed', (builder: any) => {
+        .modifyEager('sensor', (builder: any) => {
           builder.orderBy('metric').onBuild((builder: any) => {
-            // Both entities and feeds must be filtered, if we have a source restriction
+            // Both entities and sensors must be filtered, if we have a source restriction
             if (criteria['brokerage:sourceId']) {
               builder.whereIn(
-                'feed_id',
+                'sensor_id',
                 Brokerage.query()
-                  .select('feed_id')
+                  .select('sensor_id')
                   .where('source_id', '=', criteria['brokerage:sourceId'])
               )
             }
@@ -270,7 +282,7 @@ export class Entity extends StorageBase implements EntityProperties {
           })
         })
         .onBuild((builder: any) => {
-          // Allow for filtering on the entity's meta tags
+          // Allow for filtering on the platform's meta tags
           Object.keys(criteria || {}).forEach((key: string) => {
             if (key.indexOf('meta:') === 0) {
               builder.where(ref(key).castText(), criteria[key])
@@ -280,13 +292,13 @@ export class Entity extends StorageBase implements EntityProperties {
           // Allow for filtering on the source ID at the broker or controller
           if (criteria['brokerage:sourceId']) {
             builder.whereIn(
-              'entity_id',
-              Feed.query()
-                .distinct(`${Feed.tableName}.entity_id`)
+              'platform_id',
+              Sensor.query()
+                .distinct(`${Sensor.tableName}.platform_id`)
                 .innerJoin(
                   `${Brokerage.tableName}`,
-                  `${Feed.tableName}.feed_id`,
-                  `${Brokerage.tableName}.feed_id`
+                  `${Sensor.tableName}.sensor_id`,
+                  `${Brokerage.tableName}.sensor_id`
                 )
                 .where(
                   `${Brokerage.tableName}.source_id`,
@@ -298,9 +310,9 @@ export class Entity extends StorageBase implements EntityProperties {
 
           if (searchMetrics.length) {
             builder.whereIn(
-              'entity_id',
-              Feed.query()
-                .distinct('entity_id')
+              'platform_id',
+              Sensor.query()
+                .distinct('platform_id')
                 .onBuild((metricSearchBuilder: any) => {
                   if (searchMetrics.length) {
                     metricSearchBuilder.where((searchBuilder: any) =>
@@ -326,14 +338,17 @@ export class Entity extends StorageBase implements EntityProperties {
     )
   }
 
-  public static precacheQueries(entity: Entity) {
-    cache.commit(`sql:Get entity with the ID '${entity.entityId}'`, entity)
-    cache.commit(`sql:Get entity ID only from name '${entity.name}'`, {
-      entityId: entity.entityId,
+  public static precacheQueries(platform: Platform) {
+    cache.commit(
+      `sql:Get platform with the ID '${platform.platformId}'`,
+      platform
+    )
+    cache.commit(`sql:Get platform ID only from name '${platform.name}'`, {
+      platformId: platform.platformId,
     })
-    entity.feed.forEach((feed: Feed) => {
-      cache.commit(`sql:Get feed with the ID '${feed.feedId}'`, feed)
-      feed.brokerage.forEach((brokerage: Brokerage) => {
+    platform.sensor.forEach((sensor: Sensor) => {
+      cache.commit(`sql:Get sensor with the ID '${sensor.sensorId}'`, sensor)
+      sensor.brokerage.forEach((brokerage: Brokerage) => {
         cache.commit(
           `receiver:${brokerage.sourceId} on ${brokerage.broker.name}`,
           true
@@ -343,8 +358,8 @@ export class Entity extends StorageBase implements EntityProperties {
           brokerage
         )
         cache.commit(
-          `sql:Get feed from brokerage '${brokerage.sourceId}' on broker '${brokerage.broker.name}'`,
-          feed
+          `sql:Get sensor from brokerage '${brokerage.sourceId}' on broker '${brokerage.broker.name}'`,
+          sensor
         )
       })
     })
@@ -357,21 +372,21 @@ export class Entity extends StorageBase implements EntityProperties {
   ): Promise<any> {
     return {
       ...this.toJSON(),
-      feed:
+      sensor:
         !windDirection || windDirection === 'down'
           ? await Promise.all(
-              this.feed.map((f: Feed) =>
+              this.sensor.map((f: Sensor) =>
                 f.toFilteredJSON(this, 'down', requestDetail)
               )
             )
           : undefined,
       links: generateLinks([
         {
-          href: `/sensors/entity/${this.entityId}`,
+          href: `/api/platform/${this.platformId}`,
           rel: 'self',
         },
         {
-          href: `/sensors/entity/${uriName(this.name)}`,
+          href: `/api/platform/${uriName(this.name)}`,
           rel: 'self.friendly',
         },
       ]),

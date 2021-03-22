@@ -83,14 +83,14 @@ export class KNXAddress extends Datapoint {
         },
         id: this.options.address,
       },
-      entity: {
+      platform: {
         name: 'Generic KNX',
         meta: {
           tbc: true,
         },
       },
-      feed: {
-        metric: this.options.address,
+      sensor: {
+        observedProperty: this.options.address,
         meta: {
           tbc: true,
         },

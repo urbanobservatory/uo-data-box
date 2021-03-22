@@ -24,15 +24,15 @@ export interface FileRequestOptions {
   columnOverrides?: (c: string[]) => string[]
   valueOverrides?: (c: string[]) => string[]
   dateParser?: (d: string) => Date
-  entityName?: (fn: string) => string
+  platformName?: (fn: string) => string
   instanceToBroker?: (fn: string) => string
-  instanceToKey: (fn: string, entityName: string, variable: string) => string
+  instanceToKey: (fn: string, platformName: string, variable: string) => string
 }
 
 export interface FileMetric {
   key: string
   broker: string
-  entity: string
+  platform: string
   metric: string
   units: string
   type: string
@@ -268,8 +268,8 @@ export class FileController extends Controller {
             ? request.dateParser(rowData[request.columnTime])
             : new Date(rowData[request.columnTime])
 
-          const entityName: any = request.entityName
-            ? request.entityName(filepath)
+          const platformName: any = request.platformName
+            ? request.platformName(filepath)
             : 'File source'
 
           // Break data down by metric
@@ -278,7 +278,7 @@ export class FileController extends Controller {
 
             const columnKey = request.instanceToKey(
               filepath,
-              entityName,
+              platformName,
               column
             )
 
@@ -286,7 +286,7 @@ export class FileController extends Controller {
               variableData[columnKey] = <FileMetric>{
                 key: columnKey,
                 broker: request.instanceToBroker(filepath),
-                entity: entityName,
+                platform: platformName,
                 metric: column,
                 units: unitMap[column],
                 type: 'Real',

@@ -1,33 +1,33 @@
 import { JsonController, Get } from 'routing-controllers'
 import { OpenAPI } from 'routing-controllers-openapi'
 
-import { Entity, Feed } from 'shared/types'
+import { Platform, Sensor } from 'shared/types'
 
-@JsonController('/sensors/summary')
+@JsonController('/summary')
 export class SummaryController {
   static Definitions = {
-    EntitySummary: {
+    PlatformSummary: {
       type: 'object',
       properties: {
-        entityId: {
+        platformId: {
           type: 'string',
-          description: 'A unique identifier associated with this entity.',
+          description: 'A unique identifier associated with this platform.',
         },
         name: {
           type: 'string',
           description:
-            'Friendly name associated with the entity, not used internally.',
+            'Friendly name associated with the platform, not used internally.',
         },
-        feed: {
+        sensor: {
           type: 'object',
           description:
-            'A direct mapping of feed IDs to their respective metrics, with all other data omitted.',
+            'A direct mapping of sensor IDs to their respective metrics, with all other data omitted.',
         },
       },
       example: {
-        entityId: '970d26c6-37c3-49e4-b2f8-00db042ac3eb',
+        platformId: '970d26c6-37c3-49e4-b2f8-00db042ac3eb',
         name: 'Urban Sciences Building: Floor 2: Room 2.048 Zone 1',
-        feed: {
+        sensor: {
           '87b2d34e-b96e-44c1-ae69-374f4bac02cd': 'Room Temperature',
         },
       },
@@ -44,18 +44,18 @@ export class SummaryController {
       200: {
         description: 'Successful request',
         schema: {
-          $ref: '#/definitions/EntitySummary',
+          $ref: '#/definitions/PlatformSummary',
         },
       },
     },
   })
   async getSummary() {
-    return (await Entity.getIndex()).map(
-      (entity: Entity) => ({
-        entityId: entity.entityId,
-        name: entity.name,
-        feed: entity.feed.reduce((set: any, feed: Feed) => {
-          set[feed.feedId] = feed.metric
+    return (await Platform.getIndex()).map(
+      (platform: Platform) => ({
+        platformId: platform.platformId,
+        name: platform.name,
+        sensor: platform.sensor.reduce((set: any, sensor: Sensor) => {
+          set[sensor.sensorId] = sensor.propertyId
           return set
         }, {}),
       }),

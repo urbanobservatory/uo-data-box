@@ -53,12 +53,12 @@ export class HTTPInstance extends Datapoint {
         id: this.getObjectIdentifier(), //  camera id from post
         meta: {},
       },
-      entity: {
-        name: entryMetadata.entityName, // lookup table for different entities (id's from config)
-        meta: {},
+      platform: {
+        name: entryMetadata.platformName, // lookup table for different entities (id's from config)
+        meta: entryMetadata.platform, // deployment and other info
       },
-      feed: {
-        metric: entryMetadata.metricName, // lookup table for different entities (id's from config)
+      sensor: {
+        observedProperty: entryMetadata.metricName, // lookup table for different entities (id's from config)
         meta: {},
       },
       timeseries: {

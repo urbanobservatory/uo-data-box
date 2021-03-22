@@ -79,10 +79,10 @@ export class CacheManager {
 
   public recursivelyAssociate(
     key: string,
-    entity: StorageBase | StorageBase[],
+    platform: StorageBase | StorageBase[],
     child: boolean = false
   ) {
-    const entities = Array.isArray(entity) ? entity : [entity]
+    const entities = Array.isArray(platform) ? platform : [platform]
     entities.forEach((e: StorageBase) => {
       if (!child && e instanceof StorageBase) {
         this.associate(key, e)
@@ -98,15 +98,15 @@ export class CacheManager {
     })
   }
 
-  public associate(key: string, entity: StorageBase) {
+  public associate(key: string, platform: StorageBase) {
     if (this.store[key] === undefined) {
       return
     }
     const associations = this.store[key].associations
-    if (associations.indexOf(entity) < 0) {
-      associations.push(entity)
+    if (associations.indexOf(platform) < 0) {
+      associations.push(platform)
     }
-    const json = JSON.stringify(entity)
+    const json = JSON.stringify(platform)
     const uuidSet = json.match(
       /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi
     )
@@ -124,11 +124,11 @@ export class CacheManager {
     delete this.store[key]
   }
 
-  public purgeByAssociation(entity: StorageBase) {
+  public purgeByAssociation(platform: StorageBase) {
     Object.keys(this.store).forEach((key: string) => {
       if (
         this.store[key] &&
-        this.store[key].associations.indexOf(entity) >= 0
+        this.store[key].associations.indexOf(platform) >= 0
       ) {
         delete this.store[key]
       }

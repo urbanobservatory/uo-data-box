@@ -8,25 +8,27 @@ import { log } from 'shared/services/log'
 import { cacheResource, CacheOptions } from 'shared/drivers/cache'
 import { RequestDetail, StorageBase, SQL } from 'shared/drivers/sql'
 
-import { Entity } from './'
+import { Platform } from '.'
 import { Broker } from './broker'
 import { Brokerage, BrokerageProperties } from './brokerage'
 import { Hardware } from './hardware'
 import { Provider } from './provider'
+import { Property } from './property'
 import { Service } from './service'
 import { Technology } from './technology'
 import { Timeseries, TimeseriesProperties } from './timeseries'
 import { Config } from 'shared/services/config'
 
-export interface FeedProperties {
-  feedId?: string
-  metric: string
+export interface SensorProperties {
+  sensorId?: string
+  propertyId: string
   meta: any
-  entityId?: string
+  platformId?: string
   providerId?: string
   hardwareId?: string
   technologyId?: string
   provider?: Provider
+  property?: Property
   hardware?: Hardware
   technology?: Technology
   brokerage?: BrokerageProperties[]
@@ -35,11 +37,11 @@ export interface FeedProperties {
 
 @cacheResource({
   expiration: 300,
-  uniqueId: 'feedId',
+  uniqueId: 'sensorId',
 })
-export class Feed extends StorageBase implements FeedProperties {
-  static tableName: string = SQL.TableName('feed')
-  static idColumn: string = 'feed_id'
+export class Sensor extends StorageBase implements SensorProperties {
+  static tableName: string = SQL.TableName('sensor')
+  static idColumn: string = 'sensor_id'
   static defaultEager: string = `
       brokerage.[
         ${Brokerage.defaultEager}
@@ -60,14 +62,15 @@ export class Feed extends StorageBase implements FeedProperties {
     `
 
   // Table attributes
-  public feedId!: string
-  public metric!: string
+  public sensorId!: string
+  public propertyId!: string
   public meta!: any
-  public entityId!: string
+  public platformId!: string
   public providerId!: string
   public hardwareId!: string
   public technologyId!: string
   public provider!: Provider
+  public property!: Property
   public hardware!: Hardware
   public technology!: Technology
   public brokerage!: Brokerage[]
@@ -79,23 +82,31 @@ export class Feed extends StorageBase implements FeedProperties {
       relation: Model.HasManyRelation,
       modelClass: Brokerage,
       join: {
-        from: `${SQL.TableName('brokerage')}.feed_id`,
-        to: `${SQL.TableName('feed')}.feed_id`,
+        from: `${SQL.TableName('brokerage')}.sensor_id`,
+        to: `${SQL.TableName('sensor')}.sensor_id`,
       },
     },
     provider: {
       relation: Model.HasOneRelation,
       modelClass: Provider,
       join: {
-        from: `${SQL.TableName('feed')}.provider_id`,
+        from: `${SQL.TableName('sensor')}.provider_id`,
         to: `${SQL.TableName('provider')}.provider_id`,
+      },
+    },
+    property: {
+      relation: Model.HasOneRelation,
+      modelClass: Provider,
+      join: {
+        from: `${SQL.TableName('sensor')}.property_id`,
+        to: `${SQL.TableName('property')}.property_id`,
       },
     },
     hardware: {
       relation: Model.HasOneRelation,
       modelClass: Hardware,
       join: {
-        from: `${SQL.TableName('feed')}.hardware_id`,
+        from: `${SQL.TableName('sensor')}.hardware_id`,
         to: `${SQL.TableName('hardware')}.hardware_id`,
       },
     },
@@ -103,7 +114,7 @@ export class Feed extends StorageBase implements FeedProperties {
       relation: Model.HasOneRelation,
       modelClass: Technology,
       join: {
-        from: `${SQL.TableName('feed')}.technology_id`,
+        from: `${SQL.TableName('sensor')}.technology_id`,
         to: `${SQL.TableName('technology')}.technology_id`,
       },
     },
@@ -111,34 +122,34 @@ export class Feed extends StorageBase implements FeedProperties {
       relation: Model.HasManyRelation,
       modelClass: Service,
       join: {
-        from: `${SQL.TableName('service')}.feed_id`,
-        to: `${SQL.TableName('feed')}.feed_id`,
+        from: `${SQL.TableName('service')}.sensor_id`,
+        to: `${SQL.TableName('sensor')}.sensor_id`,
       },
     },
     timeseries: {
       relation: Model.HasManyRelation,
       modelClass: Timeseries,
       join: {
-        from: `${SQL.TableName('timeseries')}.feed_id`,
-        to: `${SQL.TableName('feed')}.feed_id`,
+        from: `${SQL.TableName('timeseries')}.sensor_id`,
+        to: `${SQL.TableName('sensor')}.sensor_id`,
       },
     },
   }
 
   public static async assert(
-    f: FeedProperties,
+    f: SensorProperties,
     trx?: Transaction,
-    instance?: Feed
+    instance?: Sensor
   ): Promise<any> {
-    const feedId = f.feedId || (instance && instance.feedId)
-    let feed: Feed = new Feed()
+    const sensorId = f.sensorId || (instance && instance.sensorId)
+    let sensor: Sensor = new Sensor()
 
-    if (!feedId) {
-      feed = await this.create(f, trx)
+    if (!sensorId) {
+      sensor = await this.create(f, trx)
     }
 
-    if (!instance && f.feedId) {
-      instance = await Feed.getById(f.feedId, trx)
+    if (!instance && f.sensorId) {
+      instance = await Sensor.getById(f.sensorId, trx)
     }
 
     if (instance && instance.shouldPatch(f)) {
@@ -146,9 +157,9 @@ export class Feed extends StorageBase implements FeedProperties {
         .skipUndefined()
         .patch(<any>{ ...f })
         .where({
-          feed_id: instance.feedId,
+          sensor_id: instance.sensorId,
         })
-      feed = await Feed.getById(instance.feedId, trx)
+      sensor = await Sensor.getById(instance.sensorId, trx)
     }
 
     await Promise.all(
@@ -156,7 +167,7 @@ export class Feed extends StorageBase implements FeedProperties {
         return Brokerage.assert(
           {
             ...b,
-            feedId: f.feedId || feed.feedId,
+            sensorId: f.sensorId || sensor.sensorId,
           },
           trx,
           ((instance && instance.brokerage) || []).find((fb: Brokerage) =>
@@ -170,7 +181,7 @@ export class Feed extends StorageBase implements FeedProperties {
         return Timeseries.assert(
           {
             ...t,
-            feedId: f.feedId || feed.feedId,
+            sensorId: f.sensorId || sensor.sensorId,
           },
           trx,
           ((instance && instance.timeseries) || []).find((ft: Timeseries) =>
@@ -180,38 +191,38 @@ export class Feed extends StorageBase implements FeedProperties {
       })
     )
 
-    return feed.feedId || instance
+    return sensor.sensorId || instance
   }
 
   public static async create(
-    f: FeedProperties,
+    f: SensorProperties,
     trx?: Transaction
   ): Promise<any> {
-    const feed = await this.query(trx).insert(<any>{
-      metric: f.metric,
+    const sensor = await this.query(trx).insert(<any>{
+      propertyId: f.propertyId,
       meta: f.meta,
-      entityId: f.entityId,
+      platformId: f.platformId,
     })
-    return feed
+    return sensor
   }
 
-  public static async getFeedFromBrokerage(criteria: {
+  public static async getSensorFromBrokerage(criteria: {
     sourceId: string
     brokerName: string
   }): Promise<any> {
     const { brokerName, sourceId } = criteria
 
     return await transaction(this.knex(), async (trx) => {
-      return await Feed.namedQuery(
-        `Get feed from brokerage '${sourceId}' on broker '${brokerName}'`,
+      return await Sensor.namedQuery(
+        `Get sensor from brokerage '${sourceId}' on broker '${brokerName}'`,
         trx
       )
         .limit(1)
         .where(
-          'feed_id',
+          'sensor_id',
           '=',
           Brokerage.query()
-            .select('feed_id')
+            .select('sensor_id')
             .where('source_id', '=', sourceId)
             .limit(1)
             .andWhere(
@@ -223,7 +234,7 @@ export class Feed extends StorageBase implements FeedProperties {
                 .limit(1)
             )
         )
-        .eager(`[ ${Feed.defaultEager} ]`)
+        .eager(`[ ${Sensor.defaultEager} ]`)
         .modifyEager('service', (builder: any) => {
           builder.orderBy('time', 'desc').limit(1)
         })
@@ -231,22 +242,22 @@ export class Feed extends StorageBase implements FeedProperties {
     })
   }
 
-  public static async getFeedFromTimeseries(
+  public static async getSensorFromTimeseries(
     timeseriesId: string
   ): Promise<any> {
-    return await Feed.namedQuery(
-      `Get feed from timeseries ID '${timeseriesId}'`
+    return await Sensor.namedQuery(
+      `Get sensor from timeseries ID '${timeseriesId}'`
     )
       .limit(1)
       .where(
-        'feed_id',
+        'sensor_id',
         '=',
         Timeseries.query()
-          .select('feed_id')
+          .select('sensor_id')
           .where('timeseries_id', '=', timeseriesId)
           .limit(1)
       )
-      .eager(`[ ${Feed.defaultEager} ]`)
+      .eager(`[ ${Sensor.defaultEager} ]`)
       .modifyEager('service', (builder: any) => {
         builder.orderBy('time', 'desc').limit(1)
       })
@@ -254,24 +265,24 @@ export class Feed extends StorageBase implements FeedProperties {
   }
 
   public static async getByFriendlyNames(
-    entityName: string,
-    metric: string,
+    platformName: string,
+    propertyId: string,
     trx?: Transaction
-  ): Promise<Feed> {
+  ): Promise<Sensor> {
     const set = await this.namedQuery(
-      `Get feed with fuzzy entity '${entityName}' and metric '${metric}'`,
+      `Get sensor with fuzzy platform '${platformName}' and observed property '${propertyId}'`,
       trx
     )
-      .where('metric', '~*', fuzzyName(metric))
+      .where('property_id', '~*', fuzzyName(propertyId))
       .andWhere(
-        'entity_id',
+        'platform_id',
         '=',
-        Entity.query()
-          .select('entity_id')
-          .where('name', '~*', fuzzyName(entityName))
+        Platform.query()
+          .select('platform_id')
+          .where('name', '~*', fuzzyName(platformName))
           .limit(1)
       )
-      .eager(`[ ${Feed.defaultEager} ]`)
+      .eager(`[ ${Sensor.defaultEager} ]`)
       .modifyEager('service', (builder: any) => {
         builder.orderBy('time', 'desc').limit(1)
       })
@@ -279,18 +290,18 @@ export class Feed extends StorageBase implements FeedProperties {
   }
 
   public static async getById(
-    feedId: string,
+    sensorId: string,
     trx?: Transaction
-  ): Promise<Feed> {
-    return await this.namedQuery(`Get feed with the ID '${feedId}'`, trx)
-      .findOne({ feed_id: feedId })
-      .eager(`[ ${Feed.defaultEager} ]`)
+  ): Promise<Sensor> {
+    return await this.namedQuery(`Get sensor with the ID '${sensorId}'`, trx)
+      .findOne({ sensor_id: sensorId })
+      .eager(`[ ${Sensor.defaultEager} ]`)
       .modifyEager('service', (builder: any) => {
         builder.orderBy('time', 'desc').limit(1)
       })
   }
 
-  public isEquivalent(o: FeedProperties) {
+  public isEquivalent(o: SensorProperties) {
     let brokerageMatches = false
 
     if (super.isEquivalent(o)) {
@@ -323,7 +334,7 @@ export class Feed extends StorageBase implements FeedProperties {
       )
         .filter((provider: any) => !(provider.licence.description || {}).open)
         .map((provider: any) => provider.providerId)
-      return Feed.namedQuery('Get feeds with provider restrictions', trx)
+      return Sensor.namedQuery('Get sensors with provider restrictions', trx)
         .eager(
           `[
           brokerage.[
@@ -356,18 +367,18 @@ export class Feed extends StorageBase implements FeedProperties {
 
     // Could be restricted, so need to check against API keys etc...
     // Allow passing null as parent, in which case we look up
-    const parentEntity =
+    const parentPlatform =
       parent ||
-      (await (await Entity.getById(this.entityId)).toFilteredJSON(
+      (await (await Platform.getById(this.platformId)).toFilteredJSON(
         null,
         'up',
         requestDetail
       ))
     const { apiKey } = requestDetail
-    const feedTest = {
-      feed: {
+    const sensorTest = {
+      sensor: {
         ...this.toJSON(),
-        parentEntity,
+        parentPlatform,
       },
     }
 
@@ -379,12 +390,12 @@ export class Feed extends StorageBase implements FeedProperties {
         uuidv4()) as string
       const permittedPaths: { [key: string]: any } = {
         restrictKey: [
-          `$..*.parentEntity.meta[?(@ === '6.023' && @property === 'roomNumber')]^^^^`,
+          `$..*.parentPlatform.meta[?(@ === '6.023' && @property === 'roomNumber')]^^^^`,
         ],
       }
 
       pathMatched = (permittedPaths[apiKey] || []).forEach((path: string) => {
-        if (JSONPath({ path, json: feedTest, wrap: false })) {
+        if (JSONPath({ path, json: sensorTest, wrap: false })) {
           pathMatched = path
         }
       })
@@ -404,9 +415,9 @@ export class Feed extends StorageBase implements FeedProperties {
     windDirection?: 'up' | 'down' | 'both',
     requestDetail: RequestDetail = {}
   ): Promise<any> {
-    const parentEntity =
+    const parentPlatform =
       windDirection === 'up' || windDirection === 'both'
-        ? await (await Entity.getById(this.entityId)).toFilteredJSON(
+        ? await (await Platform.getById(this.platformId)).toFilteredJSON(
             null,
             'up',
             requestDetail
@@ -414,9 +425,9 @@ export class Feed extends StorageBase implements FeedProperties {
         : undefined
     const json = {
       ...this.toJSON(),
-      parentEntity: parentEntity || parent,
+      parentPlatform: parentPlatform || parent,
       isRestricted: await this.isRestricted(
-        parentEntity ||
+        parentPlatform ||
           (await parent.toFilteredJSON(null, 'up', requestDetail)),
         requestDetail
       ),
@@ -439,19 +450,19 @@ export class Feed extends StorageBase implements FeedProperties {
       provider: this.provider
         ? await this.provider.toFilteredJSON(this, requestDetail)
         : null,
-      entityId: undefined,
+      platformId: undefined,
       providerId: undefined,
       technologyId: undefined,
-      parentEntity,
+      parentPlatform,
       links: generateLinks([
         {
-          href: `/sensors/feed/${this.feedId}`,
+          href: `/api/sensor/${this.sensorId}`,
           rel: 'self',
         },
         {
-          href: `/sensors/feed/${uriName([
-            (parentEntity || parent || {}).name,
-            this.metric,
+          href: `/api/sensor/${uriName([
+            (parentPlatform || parent || {}).name,
+            this.propertyId,
           ])}`,
           rel: 'self.friendly',
         },

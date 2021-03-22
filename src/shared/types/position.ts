@@ -8,7 +8,8 @@ export interface PositionProperties {
   positionId?: string
   description: string
   notes?: string
-  installed?: Date
+  // installed?: Date
+  properties: any
   meta: any
 }
 
@@ -21,9 +22,12 @@ export class Position extends StorageBase implements PositionProperties {
 
   // Table attributes
   public positionId!: string
+  public type!: string
   public description!: string
+
   public notes!: string
-  public installed!: Date
+  // public installed!: Date
+  public properties!: any
   public meta!: any
 
   public spatial!: Spatial

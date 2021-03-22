@@ -10,43 +10,43 @@ import {
 } from 'routing-controllers'
 import { OpenAPI } from 'routing-controllers-openapi'
 
-import { Entity, Feed } from 'shared/types'
+import { Platform, Sensor } from 'shared/types'
 
-import { FeedController } from './feed'
+import { SensorController } from './sensor'
 import { getApiKey, sharedQueryParams } from './common'
 
-@JsonController('/sensors/entity')
-export class EntityController {
+@JsonController('/platform')
+export class PlatformController {
   static Definitions = {
-    Entity: {
+    Platform: {
       type: 'object',
       properties: {
-        entityId: {
+        platformId: {
           type: 'string',
-          description: 'A unique identifier associated with this entity.',
+          description: 'A unique identifier associated with this platform.',
         },
         name: {
           type: 'string',
           description:
-            'Friendly name associated with the entity, not used internally.',
+            'Friendly name associated with the platform, not used internally.',
         },
         meta: {
           type: 'object',
           description:
-            'Metadata associated with the entity, such as room numbers or building name.',
+            'Metadata associated with the platform, such as room numbers or building name.',
         },
         position: {
           type: 'array',
         },
-        feed: {
+        sensor: {
           type: 'array',
           items: {
-            $ref: '#/definitions/Feed',
+            $ref: '#/definitions/Sensor',
           },
         },
       },
       example: {
-        entityId: 'e33f9ed0-cb60-4326-8ea6-4f166dd0c767',
+        platformId: 'e33f9ed0-cb60-4326-8ea6-4f166dd0c767',
         name: 'Urban Sciences Building: Floor 2: Room 2.048 Zone 1',
         meta: {
           building: 'Urban Sciences Building',
@@ -55,7 +55,7 @@ export class EntityController {
           buildingFloor: '2',
         },
         position: [],
-        feed: [FeedController.Definitions.Feed.example],
+        sensor: [SensorController.Definitions.Sensor.example],
       },
     },
   }
@@ -64,7 +64,7 @@ export class EntityController {
   @OpenAPI({
     summary: 'List all entities (paginated)',
     description:
-      'Paginated list of all entities, including their associated feeds and timeseries.',
+      'Paginated list of all entities, including their associated sensors and timeseries.',
     responses: {
       200: {
         description: 'Successful request',
@@ -77,7 +77,7 @@ export class EntityController {
             items: {
               type: 'array',
               items: {
-                $ref: '#/definitions/Entity',
+                $ref: '#/definitions/Platform',
               },
             },
           },
@@ -131,7 +131,7 @@ export class EntityController {
         in: 'query',
         name: 'metric',
         description:
-          'Filter to only include entities with, and feeds therein, matching at least one of the metrics specified. Partial matches on metrics are included, and each word is considered to be additive and case insensitive, so phrases must be surrounded by double quotes. ' +
+          'Filter to only include entities with, and sensors therein, matching at least one of the metrics specified. Partial matches on metrics are included, and each word is considered to be additive and case insensitive, so phrases must be surrounded by double quotes. ' +
           'For example, to return the occupancy and room temperature, but exclude flow temperatures, use `metric=occupied+"room temperature"`.',
         required: false,
         type: 'string',
@@ -144,7 +144,7 @@ export class EntityController {
     @QueryParams() params: any,
     @Req() request?: any
   ) {
-    const allEntities = await Entity.getPaginated(
+    const allEntities = await Platform.getPaginated(
       {
         pageNumber: page,
         pageSize,
@@ -153,8 +153,8 @@ export class EntityController {
     )
     allEntities.items = await Promise.all(
       allEntities.items.map(
-        async (entity: Entity) =>
-          await entity.toFilteredJSON(undefined, undefined, {
+        async (platform: Platform) =>
+          await platform.toFilteredJSON(undefined, undefined, {
             // TODO: find better way
             apiKey: getApiKey(request) as string,
           })
@@ -166,14 +166,14 @@ export class EntityController {
   @Get('/:id')
   @OnUndefined(404)
   @OpenAPI({
-    summary: 'Request a single entity by its unique ID',
+    summary: 'Request a single platform by its unique ID',
     description:
-      'A single entity and its associated feeds will be returned, if a valid ID is supplied and permissions permit.',
+      'A single platform and its associated sensors will be returned, if a valid ID is supplied and permissions permit.',
     responses: {
       200: {
         description: 'Successful request',
         schema: {
-          $ref: '#/definitions/Entity',
+          $ref: '#/definitions/Platform',
         },
       },
       400: {
@@ -185,14 +185,14 @@ export class EntityController {
     },
     parameters: [...sharedQueryParams],
   })
-  async getOne(@Param('id') entityId: string, @Req() request?: any) {
-    const entity = !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-      entityId
+  async getOne(@Param('id') platformId: string, @Req() request?: any) {
+    const platform = !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      platformId
     )
-      ? await Entity.getByFriendlyName(entityId)
-      : await Entity.getById(entityId)
-    if (!entity) return
-    return await entity.toFilteredJSON(undefined, undefined, {
+      ? await Platform.getByFriendlyName(platformId)
+      : await Platform.getById(platformId)
+    if (!platform) return
+    return await platform.toFilteredJSON(undefined, undefined, {
       apiKey: getApiKey(request) as string,
     })
   }

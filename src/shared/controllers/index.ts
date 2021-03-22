@@ -1,5 +1,5 @@
-export * from './entity'
-export * from './feed'
+export * from './platform'
+export * from './sensor'
 export * from './timeseries'
 export * from './formatters'
 export * from './summary'

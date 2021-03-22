@@ -4,7 +4,7 @@ import { Config as AppConfig } from 'shared/services/config'
 import { events } from 'shared/services/events'
 import { log } from 'shared/services/log'
 import { Receiver, IncomingStream } from 'shared/services/receiver'
-import { Entity } from 'shared/types'
+import { Platform } from 'shared/types'
 
 AppConfig.addDefaults({
   broker_queue_store: 'uo.master.store',
@@ -27,7 +27,7 @@ events.on('app:end:*', () => (appShutdown = true))
   initialiseSQL()
 
   log.info('Loading all existing entities for cache...')
-  await Entity.getAll(true)
+  await Platform.getAll(true)
   log.info('Loading is complete.')
 
   const queueService = await AMQP({

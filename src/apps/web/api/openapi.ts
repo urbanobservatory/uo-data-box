@@ -1,6 +1,7 @@
 import * as fs from 'fs'
 import { getMetadataArgsStorage } from 'routing-controllers'
 import { routingControllersToSpec } from 'routing-controllers-openapi'
+import { Config } from 'shared/services/config'
 
 import { log } from 'shared/services/log'
 
@@ -8,6 +9,7 @@ import { log } from 'shared/services/log'
 const bootprint = require('bootprint')
 const bootprintOpenAPI = require('bootprint-openapi')
 
+// TODO: make this configurable
 export function generateOpenAPI(controllerOptions: any, extraOptions: any) {
   log.info('Attempting to auto-gen documentation for API.')
   const storage = getMetadataArgsStorage()
@@ -41,8 +43,8 @@ export function generateOpenAPI(controllerOptions: any, extraOptions: any) {
   })
 
   const specificationJSON = JSON.stringify(specification, null, 2).replace(
-    /"href": "\/sensors\//g,
-    '"href": "https://api.usb.urbanobservatory.ac.uk/api/v2.0a/sensors/'
+    /"href": "\/api\//g,
+    `"href": "${Config.getValue('api_base')}`
   )
 
   fs.writeFileSync('./docs/openapi.json', specificationJSON)

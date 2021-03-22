@@ -13,7 +13,9 @@ let basicConfig = null
 let globalPrefix = ''
 export function initialiseHATEOAS(config: HATEOASConfig) {
   basicConfig = config
-  globalPrefix = `${config.baseURL}v${config.majorVersion}`
+  // globalPrefix = `${config.baseURL}v${config.majorVersion}`
+  // NOTE: no versioning in the new API
+  globalPrefix = config.baseURL
 }
 
 export function generateLinks(links: HATEOASLink[]) {

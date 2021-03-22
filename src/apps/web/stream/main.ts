@@ -6,7 +6,7 @@ import {
 } from 'shared/services'
 import { WebsocketSignal } from 'shared/services/websockets/types'
 import { initialiseSQL } from 'shared/drivers/sql'
-import { Feed } from 'shared/types'
+import { Sensor } from 'shared/types'
 
 AppConfig.addDefaults({
   broker_queue_stream: 'uo.master.stream',
@@ -45,12 +45,12 @@ initialiseSQL()
     port: parseInt(AppConfig.getValue('broker_amqp_port'), 10) || 5672,
   })
 
-  // Obtain list of restricted feeds
-  log.info('Requesting list of restricted feeds...')
-  const restrictedFeeds = (await Feed.getAllRestricted()).map(
-    (feed: any) => feed.brokerage[0].sourceId
+  // Obtain list of restricted sensors
+  log.info('Requesting list of restricted sensors...')
+  const restrictedSensors = (await Sensor.getAllRestricted()).map(
+    (sensor: any) => sensor.brokerage[0].sourceId
   )
-  log.info(`${restrictedFeeds.length} feeds are restricted.`)
+  log.info(`${restrictedSensors.length} sensors are restricted.`)
 
   // TODO: can be null?
   queueService!.consumeQueue(
@@ -59,7 +59,7 @@ initialiseSQL()
       if (!message) return
       const data = JSON.parse(message.content.toString())
 
-      if (restrictedFeeds.indexOf(data.brokerage.id) >= 0) {
+      if (restrictedSensors.indexOf(data.brokerage.id) >= 0) {
         log.verbose(
           `Excluding restricted ID '${data.brokerage.id}' from broadcast`
         )

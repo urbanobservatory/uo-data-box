@@ -66,13 +66,14 @@ export function getCameraMetadata() {
   return {
     broker: {},
     brokerage: {},
-    entity: {
+    platform: {
       area: 'Newcastle',
       lookingAt: ['Northumberland Street'],
+      inDeployment: 'northumberland-street-almera-cameras',
     },
     metric: {},
-    // entityName: `Camera mounted at ${systemDefinition.longDescription}`,
-    entityName: 'Camera mounted at Commercial Union House',
+    // platformName: `Camera mounted at ${systemDefinition.longDescription}`,
+    platformName: 'Camera mounted at Commercial Union House',
     metricName: 'Camera image',
     unit: 'JPEG Image',
     targetType: 'File',

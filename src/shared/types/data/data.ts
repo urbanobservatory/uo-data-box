@@ -6,7 +6,7 @@ import { StorageBase, SQL } from 'shared/drivers/sql'
 import { Config } from 'shared/services/config'
 import { events } from 'shared/services/events'
 import { log } from 'shared/services/log'
-import { Timeseries, Feed } from 'shared/types'
+import { Timeseries, Sensor } from 'shared/types'
 
 export interface DataProperties {
   time: Date

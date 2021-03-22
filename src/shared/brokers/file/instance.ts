@@ -35,12 +35,12 @@ export class ColumnInstance extends Datapoint {
         id: this.instanceData.key,
         meta: {},
       },
-      entity: {
-        name: this.instanceData.entity,
+      platform: {
+        name: this.instanceData.platform,
         meta: {},
       },
-      feed: {
-        metric: this.instanceData.metric,
+      sensor: {
+        observedProperty: this.instanceData.metric,
         meta: {},
       },
       timeseries: {

@@ -46,14 +46,14 @@ export class SocketVariable extends Datapoint {
           ...entryMetadata.brokerage,
         },
       },
-      entity: {
-        name: entryMetadata.entityName,
+      platform: {
+        name: entryMetadata.platformName,
         meta: {
-          ...entryMetadata.entity,
+          ...entryMetadata.platform,
         },
       },
-      feed: {
-        metric: entryMetadata.metricName,
+      sensor: {
+        observedProperty: entryMetadata.metricName,
         meta: {
           ...entryMetadata.metric,
         },

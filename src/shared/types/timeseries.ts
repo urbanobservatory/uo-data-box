@@ -6,7 +6,7 @@ import { RequestDetail, StorageBase, SQL } from 'shared/drivers/sql'
 import { log } from 'shared/services/log'
 import { generateLinks } from 'shared/services/hateoas'
 
-import { Feed, Entity } from './'
+import { Sensor, Platform } from './'
 import { Aggregation } from './aggregation'
 import { Assessment } from './assessment'
 import { Derivative } from './derivative'
@@ -25,7 +25,7 @@ import {
 export interface TimeseriesProperties {
   timeseriesId?: string
   timeseriesNum?: number
-  feedId?: string
+  sensorId?: string
   storageId?: number
   aggregation?: Aggregation[]
   derivatives?: Derivative[]
@@ -53,7 +53,7 @@ export class Timeseries extends StorageBase {
   // Table attributes
   public timeseriesId!: string
   public timeseriesNum!: number
-  public feedId!: string
+  public sensorId!: string
   public storageId!: number
   public unit!: Unit
   public aggregation!: Aggregation[]
@@ -192,7 +192,7 @@ export class Timeseries extends StorageBase {
     trx?: Transaction
   ): Promise<any> {
     const timeseries = await this.query(trx).insert(<any>{
-      feed_id: t.feedId,
+      sensor_id: t.sensorId,
       unit_id: t.unitId,
       storage_id: t.storageId,
     })
@@ -200,7 +200,7 @@ export class Timeseries extends StorageBase {
   }
 
   public static async getByFriendlyNames(
-    entityName: string,
+    platformName: string,
     metric: string,
     timeseries: string,
     trx?: Transaction
@@ -209,21 +209,21 @@ export class Timeseries extends StorageBase {
     if (timeseries !== 'raw') return undefined
 
     const set = await this.namedQuery(
-      `Get timeseries with fuzzy entity '${entityName}' and metric '${metric}' and timeseries '${timeseries}'`,
+      `Get timeseries with fuzzy platform '${platformName}' and metric '${metric}' and timeseries '${timeseries}'`,
       trx
     )
       .where(
-        'feed_id',
+        'sensor_id',
         '=',
-        Feed.query()
-          .select('feed_id')
+        Sensor.query()
+          .select('sensor_id')
           .where('metric', '~*', fuzzyName(metric))
           .andWhere(
-            'entity_id',
+            'platform_id',
             '=',
-            Entity.query()
-              .select('entity_id')
-              .where('name', '~*', fuzzyName(entityName))
+            Platform.query()
+              .select('platform_id')
+              .where('name', '~*', fuzzyName(platformName))
               .limit(1)
           )
       )
@@ -270,10 +270,10 @@ export class Timeseries extends StorageBase {
     delete baseJSON.storageId
     delete baseJSON.unitId
 
-    // Only include parent feed if we're traversing up the tree
-    const parentFeed =
+    // Only include parent sensor if we're traversing up the tree
+    const parentSensor =
       windDirection === 'up'
-        ? await (await Feed.getById(this.feedId)).toFilteredJSON(
+        ? await (await Sensor.getById(this.sensorId)).toFilteredJSON(
             null,
             'up',
             requestDetail
@@ -282,25 +282,25 @@ export class Timeseries extends StorageBase {
 
     const links = generateLinks([
       {
-        href: `/sensors/timeseries/${this.timeseriesId}`,
+        href: `/api/timeseries/${this.timeseriesId}`,
         rel: 'self',
       },
       {
-        href: `/sensors/timeseries/${this.timeseriesId}/historic`,
+        href: `/api/timeseries/${this.timeseriesId}/historic`,
         rel: 'archives',
       },
       {
-        href: `/sensors/timeseries/${uriName([
-          ((parentFeed || parent || {}).parentEntity || {}).name,
-          (parentFeed || parent || {}).metric,
+        href: `/api/timeseries/${uriName([
+          ((parentSensor || parent || {}).parentPlatform || {}).name,
+          (parentSensor || parent || {}).metric,
           'raw',
         ])}`,
         rel: 'self.friendly',
       },
       {
-        href: `/sensors/timeseries/${uriName([
-          ((parentFeed || parent || {}).parentEntity || {}).name,
-          (parentFeed || parent || {}).metric,
+        href: `/api/timeseries/${uriName([
+          ((parentSensor || parent || {}).parentPlatform || {}).name,
+          (parentSensor || parent || {}).metric,
           'raw',
           'historic',
         ])}`,
@@ -309,7 +309,7 @@ export class Timeseries extends StorageBase {
     ])
 
     if (parent) {
-      delete baseJSON.feedId
+      delete baseJSON.sensorId
     }
     // @ts-ignore next-line
     const DataHandler = Data[this.storage.name]
@@ -319,7 +319,7 @@ export class Timeseries extends StorageBase {
     if (!latestObs) {
       return Promise.resolve({
         ...baseJSON,
-        parentFeed,
+        parentSensor,
         links,
         storage: {
           ...baseJSON.storage,
@@ -331,8 +331,8 @@ export class Timeseries extends StorageBase {
     }
 
     if (
-      (parentFeed && parentFeed.isRestricted === true) ||
-      (!parentFeed && parent && parent.isRestricted === true)
+      (parentSensor && parentSensor.isRestricted === true) ||
+      (!parentSensor && parent && parent.isRestricted === true)
     ) {
       // Use stored value, not calling function
       log.verbose(
@@ -340,19 +340,19 @@ export class Timeseries extends StorageBase {
       )
       return Promise.resolve({
         ...baseJSON,
-        parentFeed,
+        parentSensor,
         latest: {
           error: true,
           message: 'Access denied',
           description:
-            'The licence associated with the parent feed does not allow you access to observed values.',
+            'The licence associated with the parent sensor does not allow you access to observed values.',
         },
       })
     }
 
     return Promise.resolve({
       ...baseJSON,
-      parentFeed,
+      parentSensor,
       latest: {
         time: latestObs.time,
         duration: latestObs.duration,

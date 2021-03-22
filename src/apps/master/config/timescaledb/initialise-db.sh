@@ -26,4 +26,4 @@ sqlCommand 'CREATE EXTENSION IF NOT EXISTS postgis;'
 sqlCommand 'CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;'
 
 # Load basic schema v2
-sqlSubstitution /tmp/sql/schema_v2.sql
+sqlSubstitution /tmp/sql/schema_v3.sql

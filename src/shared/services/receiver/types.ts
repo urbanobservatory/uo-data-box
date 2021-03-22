@@ -8,12 +8,12 @@ export interface IncomingStream {
     id: string | undefined
     meta?: any
   }
-  entity: {
+  platform: {
     name: string
     meta?: any
   }
-  feed: {
-    metric: string
+  sensor: {
+    observedProperty: string
     meta?: any
   }
   timeseries: {

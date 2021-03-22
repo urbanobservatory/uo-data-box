@@ -9,7 +9,7 @@ import { Timeseries } from './timeseries'
 export interface BrokerageProperties {
   brokerageId?: string
   brokerId?: string
-  feedId?: string
+  sensorId?: string
   sourceId?: string
   meta?: any
   broker?: BrokerProperties
@@ -27,7 +27,7 @@ export class Brokerage extends StorageBase implements BrokerageProperties {
   // Table attributes
   public brokerageId!: string
   public brokerId!: string
-  public feedId!: string
+  public sensorId!: string
   public sourceId!: string
   public meta!: any
 
@@ -45,7 +45,7 @@ export class Brokerage extends StorageBase implements BrokerageProperties {
     },
   }
 
-  public static async getFeedIdFromBrokerage(criteria: {
+  public static async getSensorIdFromBrokerage(criteria: {
     sourceId: string | undefined
     brokerName: string | undefined
   }): Promise<any> {
@@ -67,7 +67,7 @@ export class Brokerage extends StorageBase implements BrokerageProperties {
       return undefined
     }
 
-    return brokerage.feedId
+    return brokerage.sensorId
   }
 
   public static async assert(
@@ -112,7 +112,7 @@ export class Brokerage extends StorageBase implements BrokerageProperties {
   ): Promise<any> {
     const broker = await this.query(trx).insert(<any>{
       brokerId: p.brokerId,
-      feedId: p.feedId,
+      sensorId: p.sensorId,
       sourceId: p.sourceId,
       meta: p.meta,
     })
@@ -136,7 +136,8 @@ export class Brokerage extends StorageBase implements BrokerageProperties {
       return true
     }
 
-    if (this.feedId && o.feedId && this.feedId !== o.feedId) return false
+    if (this.sensorId && o.sensorId && this.sensorId !== o.sensorId)
+      return false
 
     if (this.sourceId && o.sourceId && this.sourceId !== o.sourceId)
       return false
@@ -153,7 +154,7 @@ export class Brokerage extends StorageBase implements BrokerageProperties {
   ): Promise<any> {
     const baseJSON: any = this.toJSON()
     if (parent) {
-      baseJSON.feedId = undefined
+      baseJSON.sensorId = undefined
       baseJSON.brokerId = undefined
     }
     return baseJSON

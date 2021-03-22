@@ -63,12 +63,12 @@ export class BACNETObject extends Datapoint {
         id: this.options.name,
         meta: entryMetadata.brokerage,
       },
-      entity: {
-        name: entryMetadata.entityName,
-        meta: entryMetadata.entity,
+      platform: {
+        name: entryMetadata.platformName,
+        meta: entryMetadata.platform,
       },
-      feed: {
-        metric: entryMetadata.metricName,
+      sensor: {
+        observedProperty: entryMetadata.metricName,
         meta: entryMetadata.metric,
       },
       timeseries: {

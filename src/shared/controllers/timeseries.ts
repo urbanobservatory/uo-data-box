@@ -16,7 +16,7 @@ import {
 import { OpenAPI } from 'routing-controllers-openapi'
 
 import { generateLinks } from 'shared/services/hateoas'
-import { Entity, Feed, Timeseries } from 'shared/types'
+import { Platform, Sensor, Timeseries } from 'shared/types'
 
 import { getApiKey, sharedQueryParams, universalDefinitions } from './common'
 import { csvTransform } from './formatters'
@@ -24,17 +24,17 @@ import { csvTransform } from './formatters'
 const historicCsv = csvTransform((json: any) => {
   if (!json.historic) return { data: false }
 
-  const entityName = json.timeseries.parentFeed.parentEntity.name || ''
-  const metricName = json.timeseries.parentFeed.metric || ''
+  const platformName = json.timeseries.parentSensor.parentPlatform.name || ''
+  const metricName = json.timeseries.parentSensor.observedProperty || ''
 
   return {
     headers: [
       'URBAN OBSERVATORY (http://www.urbanobservatory.ac.uk/)',
       'Licence info: http://www.urbanobservatory.ac.uk/licence/',
-      `Entity: ${entityName}`,
+      `Platform: ${platformName}`,
       `Metric: ${metricName}`,
-      `Entity ID: ${json.timeseries.parentFeed.parentEntity.entityId}`,
-      `Feed ID: ${json.timeseries.parentFeed.feedId}`,
+      `Platform ID: ${json.timeseries.parentSensor.parentPlatform.platformId}`,
+      `Sensor ID: ${json.timeseries.parentSensor.sensorId}`,
       `Timeseries ID: ${json.timeseries.timeseriesId}`,
       `Units: ${json.timeseries.unit.name}`,
       `Stored in database as: ${json.timeseries.storage.name}`,
@@ -55,7 +55,7 @@ const historicCsv = csvTransform((json: any) => {
       value: h.value,
       'duration / observation window': h.duration,
     })),
-    filename: `${entityName}-${metricName}-raw`
+    filename: `${platformName}-${metricName}-raw`
       .replace(/[^a-z0-9]+/gi, '-')
       .toLowerCase(),
   }
@@ -179,7 +179,7 @@ const openAPIHistoric = {
   ],
 }
 
-@JsonController('/sensors/timeseries')
+@JsonController('/timeseries')
 export class TimeseriesController {
   static Definitions = {
     Timeseries: {
@@ -236,7 +236,7 @@ export class TimeseriesController {
         },
         links: generateLinks([
           {
-            href: '/sensors/timeseries/371fbff8-f61d-4f66-99be-7d9de8ad51f2',
+            href: '/api/timeseries/371fbff8-f61d-4f66-99be-7d9de8ad51f2',
             rel: 'self',
           },
         ]),
@@ -319,20 +319,20 @@ export class TimeseriesController {
     ],
   })
   async getOne(@Param('id') timeseriesId: string, @Req() request: any) {
-    const parentFeed = await Feed.getFeedFromTimeseries(timeseriesId)
-    if (!parentFeed) return
+    const parentSensor = await Sensor.getSensorFromTimeseries(timeseriesId)
+    if (!parentSensor) return
     const timeseries = await Timeseries.getById(timeseriesId)
     if (!timeseries) return
-    return await timeseries.toFilteredJSON(parentFeed, undefined, 'up', {
+    return await timeseries.toFilteredJSON(parentSensor, undefined, 'up', {
       apiKey: getApiKey(request) as string,
     })
   }
 
-  @Get('/:entity/:metric/:timeseries')
+  @Get('/:platform/:metric/:timeseries')
   @OnUndefined(404)
   @OpenAPI({
     summary:
-      'Request a single timeseries by the combination of friendly names for the entity, feed and timeseries',
+      'Request a single timeseries by the combination of friendly names for the platform, sensor and timeseries',
     description:
       'A single timeseries and its current value will be returned, if recent, provided a valid set of names is supplied and permissions permit.',
     responses: {
@@ -352,8 +352,8 @@ export class TimeseriesController {
     parameters: [
       {
         in: 'path',
-        name: 'entity',
-        description: 'Entity name under which to look for the metric.',
+        name: 'platform',
+        description: 'Platform name under which to look for the metric.',
         required: true,
         type: 'string',
       },
@@ -376,16 +376,16 @@ export class TimeseriesController {
     ],
   })
   async getOneFromFriendlyNames(
-    @Param('entity') entity: string,
+    @Param('platform') platform: string,
     @Param('metric') metric: string,
     @Param('timeseries') timeseries: string,
     @Req() request: any
   ) {
-    const ts = await Timeseries.getByFriendlyNames(entity, metric, timeseries)
+    const ts = await Timeseries.getByFriendlyNames(platform, metric, timeseries)
     if (!ts) return
-    const parentFeed = await Feed.getFeedFromTimeseries(ts.timeseriesId)
-    if (!parentFeed) return
-    return await ts.toFilteredJSON(parentFeed, undefined, 'up', {
+    const parentSensor = await Sensor.getSensorFromTimeseries(ts.timeseriesId)
+    if (!parentSensor) return
+    return await ts.toFilteredJSON(parentSensor, undefined, 'up', {
       apiKey: getApiKey(request) as string,
     })
   }
@@ -414,11 +414,11 @@ export class TimeseriesController {
       throw new BadRequestError('Date format could not be parsed.')
     }
 
-    const parentFeed = await Feed.getFeedFromTimeseries(timeseriesId)
-    if (!parentFeed) return undefined
+    const parentSensor = await Sensor.getSensorFromTimeseries(timeseriesId)
+    if (!parentSensor) return undefined
 
     const requestDetail = { apiKey: getApiKey(request) as string }
-    if (await parentFeed.isRestricted(null, requestDetail)) {
+    if (await parentSensor.isRestricted(null, requestDetail)) {
       throw new ForbiddenError('No access to this timeseries.')
     }
 
@@ -430,7 +430,7 @@ export class TimeseriesController {
     )
   }
 
-  @Get('/:entity/:metric/:timeseries/historic')
+  @Get('/:platform/:metric/:timeseries/historic')
   @OnUndefined(404)
   @OpenAPI({
     ...openAPIHistoric,
@@ -438,8 +438,8 @@ export class TimeseriesController {
       ...openAPIHistoric.parameters,
       {
         in: 'path',
-        name: 'entity',
-        description: 'Entity name under which to look for the metric.',
+        name: 'platform',
+        description: 'Platform name under which to look for the metric.',
         required: true,
         type: 'string',
       },
@@ -462,7 +462,7 @@ export class TimeseriesController {
   })
   @UseBefore(historicCsv)
   async getHistoricFromFriendlyNames(
-    @Param('entity') entity: string,
+    @Param('platform') platform: string,
     @Param('metric') metric: string,
     @Param('timeseries') timeseries: string,
     @QueryParam('startTime') startTime?: string,
@@ -470,7 +470,7 @@ export class TimeseriesController {
     @Req() request?: any
   ) {
     const ts = await this.getOneFromFriendlyNames(
-      entity,
+      platform,
       metric,
       timeseries,
       request

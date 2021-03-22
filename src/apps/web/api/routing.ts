@@ -2,8 +2,8 @@ import { Action } from 'routing-controllers'
 
 import { GenericErrorHandler } from './error'
 import {
-  EntityController,
-  FeedController,
+  PlatformController,
+  SensorController,
   SummaryController,
   TimeseriesController,
 } from 'shared/controllers'
@@ -32,8 +32,8 @@ export const routingOptions = () => {
     defaultErrorHandler: false,
     routePrefix,
     controllers: [
-      EntityController,
-      FeedController,
+      PlatformController,
+      SensorController,
       TimeseriesController,
       SummaryController,
       ...instanceControllers,

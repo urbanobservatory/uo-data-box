@@ -13,31 +13,31 @@ import {
 import { OpenAPI } from 'routing-controllers-openapi'
 
 import { generateLinks } from 'shared/services/hateoas'
-import { Feed } from 'shared/types'
+import { Sensor } from 'shared/types'
 
 import { getApiKey, sharedQueryParams, universalDefinitions } from './common'
 import { TimeseriesController } from './timeseries'
 
-@JsonController('/sensors/feed')
-export class FeedController {
+@JsonController('/sensor')
+export class SensorController {
   static Definitions = {
-    Feed: {
+    Sensor: {
       type: 'object',
       properties: {
-        feedId: {
+        sensorId: {
           type: 'string',
           format: 'uuid',
-          description: 'A unique identifier associated with this feed.',
+          description: 'A unique identifier associated with this sensor.',
         },
-        metric: {
+        observedProperty: {
           type: 'string',
           description:
-            'A short description for the metric represented, e.g. Room temperature.',
+            'A short string identifier of the observed property, e.g. air-temperature.',
         },
         meta: {
           type: 'object',
           description:
-            'Metadata associated with the feed, such as the room number or floor.',
+            'Metadata associated with the sensor, such as the room number or floor.',
         },
         provider: {
           type: 'object',
@@ -81,8 +81,8 @@ export class FeedController {
         },
       },
       example: {
-        feedId: 'eeaa50bb-fb5f-47be-a6ab-eb4c67debecb',
-        metric: 'Room temperature',
+        sensorId: 'eeaa50bb-fb5f-47be-a6ab-eb4c67debecb',
+        observedProperty: 'room-temperature',
         meta: {
           building: 'Urban Sciences Building',
           roomNumber: '2.048',
@@ -100,7 +100,7 @@ export class FeedController {
         timeseries: [TimeseriesController.Definitions.Timeseries.example],
         links: generateLinks([
           {
-            href: '/sensors/feed/eeaa50bb-fb5f-47be-a6ab-eb4c67debecb',
+            href: '/api/sensor/eeaa50bb-fb5f-47be-a6ab-eb4c67debecb',
             rel: 'self',
           },
         ]),
@@ -111,14 +111,14 @@ export class FeedController {
   @Get('/:id')
   @OnUndefined(404)
   @OpenAPI({
-    summary: 'Request a single feed by its unique ID',
+    summary: 'Request a single sensor by its unique ID',
     description:
-      'A single feed and its descendant timeseries will be returned.',
+      'A single sensor and its descendant timeseries will be returned.',
     responses: {
       200: {
         description: 'Successful request',
         schema: {
-          $ref: '#/definitions/Feed',
+          $ref: '#/definitions/Sensor',
         },
       },
       400: {
@@ -133,7 +133,7 @@ export class FeedController {
         in: 'path',
         name: 'id',
         description:
-          'Feed ID to retrieve description and associated set of timeseries for.',
+          'Sensor ID to retrieve description and associated set of timeseries for.',
         required: true,
         type: 'string',
         format: 'uuid',
@@ -141,25 +141,26 @@ export class FeedController {
       ...sharedQueryParams,
     ],
   })
-  async getOne(@Param('id') feedId: string, @Req() request?: any) {
-    const feed = await Feed.getById(feedId)
-    if (!feed) return
-    return await feed.toFilteredJSON(null, 'both', {
+  async getOne(@Param('id') sensorId: string, @Req() request?: any) {
+    const sensor = await Sensor.getById(sensorId)
+    if (!sensor) return
+    return await sensor.toFilteredJSON(null, 'both', {
       apiKey: getApiKey(request) as string,
     })
   }
 
-  @Get('/:entity/:metric')
+  @Get('/:platform/:observedProperty')
   @OnUndefined(404)
   @OpenAPI({
-    summary: 'Request a single feed by the entity name and metric name',
+    summary:
+      'Request a single sensor by the platform name and observed property id',
     description:
-      'A single feed and its descendant timeseries will be returned if one can be matched successfully. If developing code, we recommend using the UUID form for accessing feeds as this alleviates name changes.',
+      'A single sensor and its descendant timeseries will be returned if one can be matched successfully. If developing code, we recommend using the UUID form for accessing sensors as this alleviates name changes.',
     responses: {
       200: {
         description: 'Successful request',
         schema: {
-          $ref: '#/definitions/Feed',
+          $ref: '#/definitions/Sensor',
         },
       },
       400: {
@@ -172,16 +173,16 @@ export class FeedController {
     parameters: [
       {
         in: 'path',
-        name: 'entity',
-        description: 'Entity name under which to look for the metric.',
+        name: 'platform',
+        description: 'Platform name under which to look for the metric.',
         required: true,
         type: 'string',
       },
       {
         in: 'path',
-        name: 'metric',
+        name: 'observedProperty',
         description:
-          'Metric to retrieve description and associated set of timeseries for.',
+          'Observed property to retrieve description and associated set of timeseries for.',
         required: true,
         type: 'string',
       },
@@ -189,13 +190,13 @@ export class FeedController {
     ],
   })
   async getOneFromFriendlyNames(
-    @Param('entity') entity: string,
-    @Param('metric') metric: string,
+    @Param('platform') platform: string,
+    @Param('observedProperty') property: string,
     @Req() request?: any
   ) {
-    const feed = await Feed.getByFriendlyNames(entity, metric)
-    if (!feed) return
-    return await feed.toFilteredJSON(null, 'both', {
+    const sensor = await Sensor.getByFriendlyNames(platform, property)
+    if (!sensor) return
+    return await sensor.toFilteredJSON(null, 'both', {
       apiKey: getApiKey(request) as string,
     })
   }

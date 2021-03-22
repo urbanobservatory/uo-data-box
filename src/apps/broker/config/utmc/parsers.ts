@@ -115,12 +115,12 @@ export function getCameraMetadata(instanceData: {
   return {
     broker: {},
     brokerage: {},
-    entity: {
+    platform: {
       area: cameraArea,
       lookingAt: cameraPositions,
     },
     metric: {},
-    entityName: `Camera mounted at ${systemDefinition.longDescription}`,
+    platformName: `Camera mounted at ${systemDefinition.longDescription}`,
     metricName: 'Camera image',
     unit: 'JPEG Image',
     targetType: 'File',
@@ -155,14 +155,14 @@ export function getCarParkMetadata(instanceData: {
   return {
     broker: {},
     brokerage: {},
-    entity: {
+    platform: {
       name: systemDefinition.shortDescription,
       address: systemDefinition.longDescription,
     },
     metric: {
       totalSpaces: systemConfiguration.capacity,
     },
-    entityName: `Car park at ${systemDefinition.shortDescription}`,
+    platformName: `Car park at ${systemDefinition.shortDescription}`,
     metricName: 'Occupied spaces',
     unit: 'Spaces',
     targetType: 'Integer',
@@ -179,7 +179,7 @@ function journeyTimePairBase(systemDefinition: any, dynamicDefinition: any) {
   return {
     broker: {},
     brokerage: {},
-    entity: {
+    platform: {
       shortName: systemDefinition.shortDescription,
       longName: systemDefinition.longDescription,
       startEasting: systemDefinition.point.easting,
@@ -188,7 +188,7 @@ function journeyTimePairBase(systemDefinition: any, dynamicDefinition: any) {
       endNorthing: systemDefinition.endPoint.northing,
     },
     metric: {},
-    entityName: `Vehicle monitoring pair ${systemDefinition.shortDescription}`,
+    platformName: `Vehicle monitoring pair ${systemDefinition.shortDescription}`,
     valueTime: new Date(dynamicDefinition.lastUpdated).toISOString(),
   }
 }

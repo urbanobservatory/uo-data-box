@@ -114,7 +114,7 @@ export const universalDefinitions = {
     },
     example: {
       rel: 'self',
-      href: '/sensors/timeseries/371fbff8-f61d-4f66-99be-7d9de8ad51f2/historic',
+      href: '/timeseries/371fbff8-f61d-4f66-99be-7d9de8ad51f2/historic',
     },
   },
   Organisation: {

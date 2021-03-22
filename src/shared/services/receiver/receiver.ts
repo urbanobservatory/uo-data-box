@@ -4,7 +4,7 @@ import { cache } from 'shared/drivers/cache'
 import { Config } from 'shared/services/config'
 import { log } from 'shared/services/log'
 import { MutexQueue } from 'shared/services/mutex-queue'
-import { Brokerage, Entity, Feed, Timeseries } from 'shared/types'
+import { Brokerage, Platform, Sensor, Timeseries } from 'shared/types'
 import { Data } from 'shared/types/data'
 
 import { IncomingStream } from './types'
@@ -31,9 +31,9 @@ export class Receiver {
       stream.timeseries.value.type.toString().toLowerCase() === 'unknown'
     ) {
       log.warn(
-        `Received data for ${stream.entity.name} without valid type. Cannot process.`
+        `Received data for ${stream.platform.name} without valid type. Cannot process.`
       )
-      log.warn(`  Metric:    ${stream.feed.metric}`)
+      log.warn(`  Observed Property:    ${stream.sensor.observedProperty}`)
       log.warn(`  Brokerage: ${stream.brokerage.id}`)
       log.debug(JSON.stringify(stream, null, 2))
       return
@@ -55,7 +55,7 @@ export class Receiver {
       fullUpdateFrequency > 0
     ) {
       log.verbose(
-        `Full update due for ${stream.entity.name} ${stream.feed.metric} for ${stream.brokerage.broker.id}...`
+        `Full update due for ${stream.platform.name} ${stream.sensor.observedProperty} for ${stream.brokerage.broker.id}...`
       )
       pendingFullUpdates[pendingId] = true
       queueFullUpdates.addQueue(() =>
@@ -77,14 +77,14 @@ export class Receiver {
       return
     }
 
-    // Resolve brokerage data back to a feed ID if possible
-    let feed = await Feed.getFeedFromBrokerage({
+    // Resolve brokerage data back to a sensor ID if possible
+    let sensor = await Sensor.getSensorFromBrokerage({
       brokerName: stream.brokerage.broker.id,
       sourceId: stream.brokerage.id,
     })
 
     // Not sure why this might happen, but probably doesn't exist yet
-    if (!feed) {
+    if (!sensor) {
       // Don't bother waiting for this to complete, it's mutexed per item
       // by the pending array
       if (pendingFullUpdates[pendingId]) {
@@ -101,18 +101,18 @@ export class Receiver {
         })
       )
       log.info(
-        `Creating ${stream.entity.name} ${stream.feed.metric} for ${stream.brokerage.broker.id}...`
+        `Creating ${stream.platform.name} ${stream.sensor.observedProperty} for ${stream.brokerage.broker.id}...`
       )
       return
     } else {
       log.verbose(
-        `Consuming ${stream.entity.name} ${stream.feed.metric} from ${stream.brokerage.broker.id}...`
+        `Consuming ${stream.platform.name} ${stream.sensor.observedProperty} from ${stream.brokerage.broker.id}...`
       )
     }
 
     // Will need to actually be clever about how we select a timeseries once
     // derivatives and aggregation is thrown into the mix.
-    const targetTimeseries = feed.timeseries.find(
+    const targetTimeseries = sensor.timeseries.find(
       (timeseries: Timeseries) => true
     )
 
@@ -139,60 +139,63 @@ export class Receiver {
     // Will need to push this data back out for the real-time stream
     // Format to be decided...
     /*
-    const updatedEntity = (await Entity.getById(feed.entityId)).toFilteredJSON();
-    const updatedTS = updatedEntity
-      .feed.find((entityFeed: Feed) => entityFeed.feedId === feed.feedId)
-      .timeseries.find((entityTS: Timeseries) => entityTS.timeseriesId === targetTimeseries.timeseriesId);
+    const updatedPlatform = (await Platform.getById(sensor.platformId)).toFilteredJSON();
+    const updatedTS = updatedPlatform
+      .sensor.find((platformSensor: Sensor) => platformSensor.sensorId === sensor.sensorId)
+      .timeseries.find((platformTS: Timeseries) => platformTS.timeseriesId === targetTimeseries.timeseriesId);
 
     // Supplant our latest data :-)
     updatedTS.latest = {
       ...updatedTS,
       timeseries_num: undefined
     };
-    //console.log(JSON.stringify(updatedEntity, null, 2));
+    //console.log(JSON.stringify(updatedPlatform, null, 2));
     */
   }
 
   public static async consumeFullUpdate(
     stream: IncomingStream
-  ): Promise<Entity> {
+  ): Promise<Platform> {
     // Creating a transaction is a fairly slow process, so try to avoid
     // if possible...
-    let entity: any = null
+    let platform: any = null
 
-    await transaction(Entity.knex(), async (trx: Transaction) => {
-      // Resolve brokerage data back to a feed ID if possible
-      const feedId = await Brokerage.getFeedIdFromBrokerage({
+    await transaction(Platform.knex(), async (trx: Transaction) => {
+      // Resolve brokerage data back to a sensor ID if possible
+      const sensorId = await Brokerage.getSensorIdFromBrokerage({
         brokerName: stream.brokerage.broker.id,
         sourceId: stream.brokerage.id,
       })
 
-      if (!feedId) {
+      if (!sensorId) {
         log.info(
-          `Consuming previously unidentified feed on '${stream.entity.name}'.`
+          `Consuming previously unidentified sensor on '${stream.platform.name}'.`
         )
-        log.info(`  Metric:    ${stream.feed.metric}`)
+        log.info(`  Observed Property:    ${stream.sensor.observedProperty}`)
         log.info(`  Brokerage: ${stream.brokerage.id}`)
       }
 
-      // Entity names must be unique, so find out if it already exists
-      const entityRecord = await Entity.getIdFromName(stream.entity.name, trx)
+      // Platform names must be unique, so find out if it already exists
+      const platformRecord = await Platform.getIdFromName(
+        stream.platform.name,
+        trx
+      )
 
       /**
-       * This will guarantee that an entity exists with the correct name,
+       * This will guarantee that an platform exists with the correct name,
        * either by creating one, or updating an existing set of records.
        */
       try {
-        entity = await Entity.assert(
+        platform = await Platform.assert(
           {
-            entityId: entityRecord && entityRecord.entityId,
-            name: stream.entity.name,
-            meta: stream.entity.meta,
-            feed: [
+            platformId: platformRecord && platformRecord.platformId,
+            name: stream.platform.name,
+            meta: stream.platform.meta,
+            sensor: [
               {
-                feedId,
-                metric: stream.feed.metric,
-                meta: stream.feed.meta,
+                sensorId,
+                propertyId: stream.sensor.observedProperty,
+                meta: stream.sensor.meta,
                 brokerage: [
                   {
                     sourceId: stream.brokerage.id,
@@ -216,7 +219,8 @@ export class Receiver {
             ],
           },
           trx,
-          entityRecord && (await Entity.getById(entityRecord.entityId, trx))
+          platformRecord &&
+            (await Platform.getById(platformRecord.platformId, trx))
         )
       } catch (e) {
         if (e.message.indexOf('duplicate key') >= 0) {
@@ -235,17 +239,17 @@ export class Receiver {
         }
       }
 
-      entity = await Entity.getById(entity.entityId, trx)
-      await Entity.precacheQueries(entity)
+      platform = await Platform.getById(platform.platformId, trx)
+      await Platform.precacheQueries(platform)
     })
 
-    if (entity) {
+    if (platform) {
       cache.commit(
         `receiver:${stream.brokerage.id} on ${stream.brokerage.broker.id}`,
         true
       )
     }
 
-    return entity
+    return platform
   }
 }
