@@ -1,1 +1,1 @@
-export * from './bandstand';
+export * from './bandstand'

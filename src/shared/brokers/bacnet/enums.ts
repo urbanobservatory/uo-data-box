@@ -1,24 +1,24 @@
-import * as BACNET from 'bacstack';
+const BACNET = require('bacstack')
 
 export interface BACNETPropertyRequest {
-  objectType: BACNETObjectTypes;
-  objectIdentifier: number;
-  propertyIdentifiers: BACNETPropertyIdentifier[];
+  objectType: BACNETObjectTypes
+  objectIdentifier: number
+  propertyIdentifiers: BACNETPropertyIdentifier[]
 }
 
 export interface BACNETPropertyData {
-  identifier: BACNETPropertyIdentifier;
-  tag: number;
-  value: any;
-  exists: boolean;
+  identifier: BACNETPropertyIdentifier
+  tag: number
+  value: any
+  exists: boolean
 }
 
 export interface BACNETPropertyResponse {
-  objectType: BACNETObjectTypes;
-  objectTypeName: string;
-  objectIdentifier: number;
-  objectExists: boolean;
-  properties: {[key: string]: BACNETPropertyData};
+  objectType: BACNETObjectTypes
+  objectTypeName: string
+  objectIdentifier: number
+  objectExists: boolean
+  properties: { [key: string]: BACNETPropertyData }
 }
 
 export enum BACNETObjectTypes {
@@ -75,7 +75,7 @@ export enum BACNETObjectTypes {
   NotificationForwarder = 51,
   AlertEnrollment = 52,
   Channel = 53,
-  LightingOutput = 54
+  LightingOutput = 54,
 }
 
 export enum BACNETPropertyIdentifier {
@@ -89,13 +89,13 @@ export enum BACNETPropertyIdentifier {
   UpdateInterval = 118,
   Resolution = 106,
   StatusFlags = 111,
-  EventState = 36
+  EventState = 36,
 }
 
-export const BACNETTagIDToName = Object.keys(BACNET.enum.BacnetApplicationTags).reduce(
-	(set, id) => {
-		set[parseInt(BACNET.enum.BacnetApplicationTags[id], 10)] = id.replace('BACNET_APPLICATION_TAG_', '');
-		return set;
-	},
-	{}
-);
+export const BACNETTagIDToName: { [key: number]: string } = Object.keys(
+  BACNET.enum.BacnetApplicationTags
+).reduce((set, id) => {
+  const tag = parseInt(BACNET.enum.BacnetApplicationTags[id], 10)
+  set[tag] = id.replace('BACNET_APPLICATION_TAG_', '')
+  return set
+}, {} as { [key: number]: string })

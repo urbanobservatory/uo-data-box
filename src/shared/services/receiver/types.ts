@@ -1,27 +1,28 @@
 export interface IncomingStream {
   brokerage: {
     broker: {
-      id: string;
-      meta?: any;
+      id: string
+      meta?: any
     }
-    id: string;
-    meta?: any;
-  };
-  entity: {
-    name: string;
-    meta?: any;
-  };
-  feed: {
-    metric: string;
-    meta?: any;
-  };
+    // FIXME: this shouldn't be undefined when added
+    id: string | undefined
+    meta?: any
+  }
+  platform: {
+    name: string
+    meta?: any
+  }
+  sensor: {
+    observedProperty: string
+    meta?: any
+  }
   timeseries: {
-    unit: string;
+    unit: string
     value: {
-      time: Date;
-      timeAccuracy: number;
-      data: any;
-      type: string;
+      time: Date | null
+      timeAccuracy: number | null
+      data: any
+      type: string
     }
   }
 }

@@ -1,37 +1,37 @@
-import {Model, Transaction} from 'objection';
+import { Model, Transaction } from 'objection'
 
-import {cacheResource} from '../drivers/cache';
-import {RequestDetail, StorageBase, SQL} from '../drivers/sql';
+import { cacheResource } from '../drivers/cache'
+import { RequestDetail, StorageBase, SQL } from '../drivers/sql'
 
-import {Broker, BrokerProperties} from './broker';
-import {Timeseries} from "./timeseries";
+import { Broker, BrokerProperties } from './broker'
+import { Timeseries } from './timeseries'
 
 export interface BrokerageProperties {
-  brokerageId?: string;
-  brokerId?: string;
-  feedId?: string;
-  sourceId: string;
-  meta?: any;
-  broker?: BrokerProperties;
+  brokerageId?: string
+  brokerId?: string
+  sensorId?: string
+  sourceId?: string
+  meta?: any
+  broker?: BrokerProperties
 }
 
 @cacheResource({
   expiration: 3600,
-  uniqueId: 'brokerageId'
+  uniqueId: 'brokerageId',
 })
 export class Brokerage extends StorageBase implements BrokerageProperties {
-  static tableName: string = SQL.TableName('brokerage');
-  static idColumn: string = 'brokerage_id';
-  static defaultEager: string = `broker`;
+  static tableName: string = SQL.TableName('brokerage')
+  static idColumn: string = 'brokerage_id'
+  static defaultEager: string = `broker`
 
   // Table attributes
-  public brokerageId: string;
-  public brokerId: string;
-  public feedId: string;
-  public sourceId: string;
-  public meta: any;
+  public brokerageId!: string
+  public brokerId!: string
+  public sensorId!: string
+  public sourceId!: string
+  public meta!: any
 
-  public broker: Broker;
+  public broker!: Broker
 
   // Table relations
   static relationMappings = {
@@ -40,109 +40,123 @@ export class Brokerage extends StorageBase implements BrokerageProperties {
       modelClass: Broker,
       join: {
         from: `${SQL.TableName('brokerage')}.broker_id`,
-        to: `${SQL.TableName('broker')}.broker_id`
-      }
-    }
+        to: `${SQL.TableName('broker')}.broker_id`,
+      },
+    },
   }
 
-  public static async getFeedIdFromBrokerage(criteria: {sourceId: string, brokerName: string}): Promise<any> {
-    const {brokerName, sourceId} = criteria;
-
-    const broker: Broker = await Broker.getByName(brokerName);
+  public static async getSensorIdFromBrokerage(criteria: {
+    sourceId: string | undefined
+    brokerName: string | undefined
+  }): Promise<any> {
+    const { brokerName, sourceId } = criteria
+    if (brokerName == undefined) return
+    const broker: Broker = await Broker.getByName(brokerName)
     if (!broker) {
-      return undefined;
+      return undefined
     }
 
-    const brokerage = await this.namedQuery(`Get brokerage for source ID '${sourceId}' and broker '${brokerName}'`)
-      .findOne({
-        source_id: sourceId,
-        broker_id: broker.brokerId
-      });
+    const brokerage = await this.namedQuery(
+      `Get brokerage for source ID '${sourceId}' and broker '${brokerName}'`
+    ).findOne({
+      source_id: sourceId,
+      broker_id: broker.brokerId,
+    })
 
     if (!brokerage) {
-      return undefined;
+      return undefined
     }
 
-    return brokerage.feedId;
+    return brokerage.sensorId
   }
 
-  public static async assert(p: BrokerageProperties, trx?: Transaction, instance?: Brokerage): Promise<any> {
-    let brokerageId = p.brokerageId || (instance && instance.brokerageId);
-    let brokerage: Brokerage;
+  public static async assert(
+    p: BrokerageProperties,
+    trx?: Transaction,
+    instance?: Brokerage
+  ): Promise<any> {
+    let brokerageId = p.brokerageId || (instance && instance.brokerageId)
+    let brokerage: any = null
 
-    const broker = await Broker.assert(
-      p.broker,
-      trx,
-      instance && instance.broker
-    );
+    if (p.broker) {
+      const broker = await Broker.assert(
+        p.broker,
+        trx,
+        instance && instance.broker
+      )
 
-    if (!brokerageId) {
-      brokerage = await this.create({...p, brokerId: broker.brokerId}, trx);
+      if (!brokerageId) {
+        brokerage = await this.create({ ...p, brokerId: broker.brokerId }, trx)
+      }
     }
-
     if (!instance && p.brokerageId) {
-      instance = await Brokerage.getById(p.brokerageId, trx);
+      instance = await Brokerage.getById(p.brokerageId, trx)
     }
 
     if (instance && instance.shouldPatch(p)) {
       await this.query(trx)
         .skipUndefined()
-        .patch(<any>{...p})
+        .patch(<any>{ ...p })
         .where({
-          brokerage_id: instance.brokerageId
-        });
-      brokerage = await Brokerage.getById(instance.brokerageId, trx);
+          brokerage_id: instance.brokerageId,
+        })
+      brokerage = await Brokerage.getById(instance.brokerageId, trx)
     }
 
-    return brokerage || instance;
+    return brokerage || instance
   }
 
-  public static async create(p: BrokerageProperties, trx?: Transaction): Promise<any> {
-    const broker = await this.query(trx)
-      .insert(<any>{
-        brokerId: p.brokerId,
-        feedId: p.feedId,
-        sourceId: p.sourceId,
-        meta: p.meta
-      });
-    return broker;
+  public static async create(
+    p: BrokerageProperties,
+    trx?: Transaction
+  ): Promise<any> {
+    const broker = await this.query(trx).insert(<any>{
+      brokerId: p.brokerId,
+      sensorId: p.sensorId,
+      sourceId: p.sourceId,
+      meta: p.meta,
+    })
+    return broker
   }
 
-  public static async getById(brokerageId: string, trx?: Transaction): Promise<Brokerage> {
-    return await this.namedQuery(`Get brokerage with the ID '${brokerageId}'`, trx)
-      .findOne({brokerage_id: brokerageId})
-      .eager(`[ ${Brokerage.defaultEager} ]`);
+  public static async getById(
+    brokerageId: string,
+    trx?: Transaction
+  ): Promise<Brokerage> {
+    return await this.namedQuery(
+      `Get brokerage with the ID '${brokerageId}'`,
+      trx
+    )
+      .findOne({ brokerage_id: brokerageId })
+      .eager(`[ ${Brokerage.defaultEager} ]`)
   }
 
   public isEquivalent(o: BrokerageProperties) {
     if (super.isEquivalent(o)) {
-      return true;
+      return true
     }
 
-    if (this.feedId &&
-        o.feedId &&
-        this.feedId !== o.feedId)
-      return false;
+    if (this.sensorId && o.sensorId && this.sensorId !== o.sensorId)
+      return false
 
-    if (this.sourceId &&
-        o.sourceId &&
-        this.sourceId !== o.sourceId)
-      return false;
+    if (this.sourceId && o.sourceId && this.sourceId !== o.sourceId)
+      return false
 
-    if (this.brokerId &&
-        o.brokerId &&
-        this.brokerId !== o.brokerId)
-      return false;
+    if (this.brokerId && o.brokerId && this.brokerId !== o.brokerId)
+      return false
 
-    return true;
+    return true
   }
 
-  public async toFilteredJSON(parent?: any, requestDetail: RequestDetail = {}): Promise<any> {
-    const baseJSON: any = this.toJSON();
+  public async toFilteredJSON(
+    parent?: any,
+    requestDetail: RequestDetail = {}
+  ): Promise<any> {
+    const baseJSON: any = this.toJSON()
     if (parent) {
-      baseJSON.feedId = undefined;
-      baseJSON.brokerId = undefined;
+      baseJSON.sensorId = undefined
+      baseJSON.brokerId = undefined
     }
-    return baseJSON;
+    return baseJSON
   }
 }

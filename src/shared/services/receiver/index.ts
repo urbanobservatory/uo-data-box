@@ -1,2 +1,2 @@
-export * from './receiver';
-export * from './types';
+export * from './receiver'
+export * from './types'

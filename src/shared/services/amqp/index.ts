@@ -1,1 +1,1 @@
-export * from './amqp';
+export * from './amqp'

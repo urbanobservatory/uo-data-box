@@ -1,12 +1,12 @@
-import {DataBoolean} from './boolean';
-import {DataProperties} from './data';
-import {DataInteger} from './integer';
-import {DataEvent} from './event';
-import {DataReal} from './real';
-import {DataString} from './string';
-import {DataTimestamp} from './timestamp';
-import {DataFile} from './file';
-import {DataJson} from './json';
+import { DataBoolean } from './boolean'
+import { DataProperties } from './data'
+import { DataInteger } from './integer'
+import { DataEvent } from './event'
+import { DataReal } from './real'
+import { DataString } from './string'
+import { DataTimestamp } from './timestamp'
+import { DataFile } from './file'
+import { DataJson } from './json'
 
 const Data = {
   Boolean: DataBoolean,
@@ -16,8 +16,8 @@ const Data = {
   String: DataString,
   Timestamp: DataTimestamp,
   File: DataFile,
-  JSON: DataJson
-};
+  JSON: DataJson,
+}
 
 export {
   Data,
@@ -29,5 +29,5 @@ export {
   DataString,
   DataTimestamp,
   DataFile,
-  DataJson
-};
+  DataJson,
+}

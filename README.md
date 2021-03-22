@@ -58,7 +58,7 @@ Code shared across all the implementations such as `types`, `ORM` database model
 
 - ### `src/shared/brokers`
 
-  Deals with getting data from sensors, APIs and HTTP uploads, and pushes it to queues. Also links to `controllers` and gives it _entity_ and _unity_ names. This is what you would extend if you would want to add a special type of broker handling data from a incoming feed.
+  Deals with getting data from sensors, APIs and HTTP uploads, and pushes it to queues. Also links to `controllers` and gives it _platform_ and _unity_ names. This is what you would extend if you would want to add a special type of broker handling data from a incoming feed.
 
 ### `src/apps`
 

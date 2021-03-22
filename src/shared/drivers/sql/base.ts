@@ -1,38 +1,40 @@
-import * as deepEqual from "deep-equal";
-import { camelCase, mapKeys, snakeCase } from "lodash";
-import * as Knex from "knex";
-import { Model, QueryBuilder, Transaction } from "objection";
+// @ts-nocheck
+// FIXME: fix lint errors
+import deepEqual from 'deep-equal'
+import { camelCase, mapKeys, snakeCase } from 'lodash'
+import Knex from 'knex'
+import { Model, QueryBuilder, Transaction } from 'objection'
 
-import { Config } from "shared/services/config";
-import { log } from "shared/services/log";
-import { cache, CacheOptions } from "../cache";
+import { Config } from 'shared/services/config'
+import { log } from 'shared/services/log'
+import { cache, CacheOptions } from '../cache'
 
 interface NamedQueryOptions {
-  invalidate?: boolean;
-  expiration?: number;
+  invalidate?: boolean
+  expiration?: number
 }
 
 export interface RequestDetail {
-  apiKey?: string;
+  apiKey?: string
 }
 
-let knexDefault;
-const uuidTest = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/;
+let knexDefault
+const uuidTest = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/
 
 export const initialiseSQL = () => {
   knexDefault = Knex({
-    client: "pg",
+    client: 'pg',
     debug: false,
     connection: {
-      host: Config.getValue("db_host"),
-      port: parseInt(Config.getValue("db_port"), 10) || 5432,
-      user: Config.getValue("db_user"),
-      password: Config.getValue("db_pass"),
-      database: Config.getValue("db_name"),
+      host: Config.getValue('db_host'),
+      port: parseInt(Config.getValue('db_port'), 10) || 5432,
+      user: Config.getValue('db_user'),
+      password: Config.getValue('db_pass'),
+      database: Config.getValue('db_name'),
     },
     pool: { min: 5, max: 35 },
-  });
-  Model.knex(knexDefault);
+  })
+  Model.knex(knexDefault)
   /*
   const times = {};
   let count = 0;
@@ -58,14 +60,15 @@ export const initialiseSQL = () => {
       delete times[uid];
     });
 */
-};
+}
 
 export class StorageBase extends Model {
-  "constructor": typeof StorageBase;
-  static cacheOptions?: CacheOptions;
+  // @ts-ignore next-line
+  'constructor': typeof StorageBase
+  static cacheOptions?: CacheOptions
 
   constructor() {
-    super();
+    super()
   }
 
   public static namedQuery(
@@ -77,21 +80,21 @@ export class StorageBase extends Model {
     const cacheParameters =
       parameters && Object.keys(parameters).length
         ? `:${JSON.stringify(parameters)}`
-        : "";
-    const cacheKey = `sql:${name}${cacheParameters}`;
+        : ''
+    const cacheKey = `sql:${name}${cacheParameters}`
     const cacheEntry = cache.fetch(
       cacheKey,
-      (options || {}).expiration || this.cacheOptions.expiration
-    );
+      (options || {}).expiration || (this.cacheOptions || {}).expiration
+    )
 
-    const q = this.query(trx);
+    const q = this.query(trx)
     if (cacheEntry !== undefined && !(options || {}).invalidate) {
-      q.resolve(cacheEntry);
-      return q;
+      q.resolve(cacheEntry)
+      return q
     }
 
-    log.debug(`Running SQL query for '${name}'`);
-    (<any>q.runAfter)(
+    log.debug(`Running SQL query for '${name}'`)
+    ;(<any>q.runAfter)(
       (models: any, queryBuilder: QueryBuilder<StorageBase>) => {
         // Don't cache negative results, as we'll probably be asserting or creating immediately after
         if (
@@ -99,26 +102,26 @@ export class StorageBase extends Model {
           !models ||
           (Array.isArray(models) && !models.length)
         )
-          return models;
-        cache.commit(cacheKey, models);
-        return models;
+          return models
+        cache.commit(cacheKey, models)
+        return models
       }
-    );
-    return q;
+    )
+    return q
   }
 
-  public $formatDatabaseJson(json): any {
-    json = super.$formatDatabaseJson(json);
+  public $formatDatabaseJson(json: any): any {
+    json = super.$formatDatabaseJson(json)
     return mapKeys(json, (value: string, key: string) => {
-      return snakeCase(key);
-    });
+      return snakeCase(key)
+    })
   }
 
-  public $parseDatabaseJson(json): any {
+  public $parseDatabaseJson(json: any): any {
     json = mapKeys(json, (value: string, key: string) => {
-      return camelCase(key);
-    });
-    return super.$parseDatabaseJson(json);
+      return camelCase(key)
+    })
+    return super.$parseDatabaseJson(json)
   }
 
   public $afterGet() {
@@ -126,41 +129,47 @@ export class StorageBase extends Model {
   }
 
   public $afterInsert(cxt: any) {
-    cache.purgeByAssociation(this);
-    this.getRowCacheIDs().forEach((column: string) => {
+    cache.purgeByAssociation(this)
+    // FIXME: find better way
+    this.getRowCacheIDs().forEach((column: any) => {
+      // @ts-ignore next-line
       if (this[column] && uuidTest.test(this[column])) {
-        cache.purgeByUUID(this[column]);
+        // @ts-ignore next-line
+        cache.purgeByUUID(this[column])
       }
-    });
+    })
   }
 
   public $afterUpdate(updateOptions: any, cxt: any) {
-    cache.purgeByAssociation(this);
+    cache.purgeByAssociation(this)
     this.getRowCacheIDs().forEach((column: string) => {
+      // @ts-ignore next-line
       if (this[column] && uuidTest.test(this[column])) {
-        cache.purgeByUUID(this[column]);
+        // @ts-ignore next-line
+        cache.purgeByUUID(this[column])
       }
-    });
+    })
   }
 
   public $afterDelete(cxt: any) {
-    cache.purgeByAssociation(this);
+    cache.purgeByAssociation(this)
     this.getRowCacheIDs().forEach((column: string) =>
+      // @ts-ignore next-line
       cache.purgeByUUID(this[column])
-    );
+    )
   }
 
   public getRowCacheIDs(): string[] {
-    const formattedColumns: string[] = [];
-    const idColumns: string[] = Array.isArray(this.constructor.idColumn)
+    const formattedColumns: string[] = []
+    const idColumns: any[] = Array.isArray(this.constructor.idColumn)
       ? this.constructor.idColumn
-      : [this.constructor.idColumn];
+      : [this.constructor.idColumn]
     idColumns.forEach((column: string) => {
-      formattedColumns.push(column);
-      formattedColumns.push(camelCase(column));
-      formattedColumns.push(snakeCase(column));
-    });
-    return formattedColumns.filter((column: string) => !!this[column]);
+      formattedColumns.push(column)
+      formattedColumns.push(camelCase(column))
+      formattedColumns.push(snakeCase(column))
+    })
+    return formattedColumns.filter((column: string) => !!this[column])
   }
 
   public shouldPatch(requirements: any) {
@@ -169,24 +178,28 @@ export class StorageBase extends Model {
       JSON.stringify(
         Object.keys(o)
           .sort()
-          .reduce((r, k) => ((r[k] = o[k]), r), {})
-      );
+          .reduce((r: any, k) => ((r[k] = o[k]), r), {})
+      )
 
-    let requiresPatch: boolean = false;
+    let requiresPatch: boolean = false
     Object.keys(requirements).forEach((column: string) => {
-      const isInstance = this[column] instanceof StorageBase;
+      // @ts-ignore next-line
+      const isInstance = this[column] instanceof StorageBase
       const isArrayOfInstances =
+        // @ts-ignore next-line
         Array.isArray(this[column]) &&
-        this[column].every((i: any) => i instanceof StorageBase);
+        // @ts-ignore next-line
+        this[column].every((i: any) => i instanceof StorageBase)
 
       // TODO: Do we need to consider arrays of these also?
-      const isPlain = this.constructor.isPlain(this[column]);
+      // @ts-ignore next-line
+      const isPlain = this.constructor.isPlain(this[column])
       const isPrimitive =
-        typeof this[column] === "string" ||
-        typeof this[column] === "boolean" ||
-        typeof this[column] === "number" ||
-        typeof this[column] === "undefined" ||
-        this[column] === null;
+        typeof this[column] === 'string' ||
+        typeof this[column] === 'boolean' ||
+        typeof this[column] === 'number' ||
+        typeof this[column] === 'undefined' ||
+        this[column] === null
 
       if (!isInstance && !isArrayOfInstances && (isPlain || isPrimitive)) {
         // Don't mistakenly treat undefined as changes
@@ -195,72 +208,75 @@ export class StorageBase extends Model {
           (this[column] === null || this[column] === undefined) &&
           requirements[column] === undefined
         ) {
-          return;
+          return
         }
         if (isPrimitive && this[column] !== requirements[column]) {
-          requiresPatch = true;
+          requiresPatch = true
         } else if (!deepEqual(this[column], requirements[column] || {})) {
-          requiresPatch = true;
+          requiresPatch = true
         }
       }
-    });
-    return requiresPatch;
+    })
+    return requiresPatch
   }
 
   public static isPlain(obj: any) {
-    if (typeof obj == "object" && obj !== null) {
-      if (typeof Object.getPrototypeOf == "function") {
-        const proto = Object.getPrototypeOf(obj);
-        return proto === Object.prototype || proto === null;
+    if (typeof obj == 'object' && obj !== null) {
+      if (typeof Object.getPrototypeOf == 'function') {
+        const proto = Object.getPrototypeOf(obj)
+        return proto === Object.prototype || proto === null
       }
 
-      return Object.prototype.toString.call(obj) == "[object Object]";
+      return Object.prototype.toString.call(obj) == '[object Object]'
     }
-    return false;
+    return false
   }
 
   public isEquivalent(o: any) {
-    let equivalent = true;
+    let equivalent = true
     const idSet = Array.isArray(this.constructor.idColumn)
       ? this.constructor.idColumn
-      : [this.constructor.idColumn];
+      : [this.constructor.idColumn]
     const idColumns = idSet
       .concat(idSet.map((column: string) => camelCase(column)))
       .filter(
         (column: string) =>
           this[column] !== undefined || o[column] !== undefined
-      );
+      )
     idColumns.forEach((id: string) => {
-      if (this[id] === undefined) return;
+      if (this[id] === undefined) return
       if (this[id] !== o[id]) {
-        equivalent = false;
+        equivalent = false
       }
-    });
-    return equivalent && idColumns.length > 0;
+    })
+    return equivalent && idColumns.length > 0
   }
 
   public getGetters(): string[] {
-    let parentPrototype = this.constructor.prototype;
+    let parentPrototype = this.constructor.prototype
     return Object.getOwnPropertyNames(parentPrototype).filter((name) => {
       return (
-        typeof Object.getOwnPropertyDescriptor(parentPrototype, name)["get"] ===
-        "function"
-      );
-    });
+        typeof Object.getOwnPropertyDescriptor(parentPrototype, name)['get'] ===
+        'function'
+      )
+    })
   }
 
   public getSetters(): string[] {
-    let parentPrototype = this.constructor.prototype;
+    let parentPrototype = this.constructor.prototype
     return Object.getOwnPropertyNames(parentPrototype).filter((name) => {
       return (
-        typeof Object.getOwnPropertyDescriptor(parentPrototype, name)["set"] ===
-        "function"
-      );
-    });
+        typeof Object.getOwnPropertyDescriptor(parentPrototype, name)['set'] ===
+        'function'
+      )
+    })
   }
 
   public async toFilteredJSON(parent?: any): Promise<any> {
     // Unless otherwise directed...
-    return Promise.resolve(this.toJSON());
+    return Promise.resolve(this.toJSON())
   }
 }
+
+// Object['setPrototypeOf'](StorageBase, Model)
+// Model.extend(StorageBase)

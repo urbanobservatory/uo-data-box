@@ -3,24 +3,24 @@
 // ---
 
 interface CameraInstance {
-  systemCodeNumber: string;
+  systemCodeNumber: string
   definitions: {
-    shortDescription: string;
-    longDescription: string;
+    shortDescription: string
+    longDescription: string
     point: {
-      easting: number;
-      northing: number;
-    };
-    lastUpdated: Date;
-  }[];
+      easting: number
+      northing: number
+    }
+    lastUpdated: Date
+  }[]
 }
 
 interface CameraDynamicInstance {
-  systemCodeNumber: string;
+  systemCodeNumber: string
   dynamics: {
-    image: string;
-    lastUpdated: string;
-  }[];
+    image: string
+    lastUpdated: string
+  }[]
 }
 
 /**
@@ -34,16 +34,16 @@ export function cameraImageFilename(
   cameraId: string,
   imagePath: string
 ): string {
-  const imageTime: Date = new Date();
+  const imageTime: Date = new Date()
   const timeFull = imageTime
     .toISOString()
-    .replace(/T/, "_")
-    .replace(/([-:]|\.[0-9Z]+$)/g, "");
-  const dateString = timeFull.split("_")[0];
-  const timeString = timeFull.split("_")[1];
+    .replace(/T/, '_')
+    .replace(/([-:]|\.[0-9Z]+$)/g, '')
+  const dateString = timeFull.split('_')[0]
+  const timeString = timeFull.split('_')[1]
   return `public/camera-feeds/${cameraId}/${dateString}/${timeString}.${getImageExtension(
     imagePath
-  )}`;
+  )}`
 }
 
 // export function getCameraMetadata(instanceData: {
@@ -66,19 +66,20 @@ export function getCameraMetadata() {
   return {
     broker: {},
     brokerage: {},
-    entity: {
-      area: "Newcastle",
-      lookingAt: ["Northumberland Street"],
+    platform: {
+      area: 'Newcastle',
+      lookingAt: ['Northumberland Street'],
+      inDeployment: 'northumberland-street-almera-cameras',
     },
     metric: {},
-    // entityName: `Camera mounted at ${systemDefinition.longDescription}`,
-    entityName: "Camera mounted at Commercial Union House",
-    metricName: "Camera image",
-    unit: "JPEG Image",
-    targetType: "File",
-    valueSource: "fileURL",
+    // platformName: `Camera mounted at ${systemDefinition.longDescription}`,
+    platformName: 'Camera mounted at Commercial Union House',
+    metricName: 'Camera image',
+    unit: 'JPEG Image',
+    targetType: 'File',
+    valueSource: 'fileURL',
     valueTime: new Date().toISOString(),
-  };
+  }
 }
 
 /**
@@ -88,12 +89,13 @@ export function getCameraMetadata() {
  * @returns {string}
  */
 function getImageExtension(imagePath: string) {
-  const extensionExtraction = /(?:\.([^.]+))?$/;
-  return extensionExtraction.exec(imagePath)[1];
+  const extensionExtraction = /(?:\.([^.]+))?$/
+  const extensions = extensionExtraction.exec(imagePath)
+  return extensions === null ? 'jpg' : extensions[1]
 }
 
 // NOTE: LOOKUP TABLE for CAMERA ID's array if not reject / in the post key for the file we define
 export const cameraIds = [
-  "cuh-northumberland-street-1",
-  "cuh-northumberland-street-2",
-];
+  'cuh-northumberland-street-1',
+  'cuh-northumberland-street-2',
+]
