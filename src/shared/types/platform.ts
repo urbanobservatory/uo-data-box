@@ -16,6 +16,7 @@ export interface PlatformProperties {
   platformId?: string
   name: string
   meta: any
+  deploymentId?: string
   position?: PositionProperties[]
   sensor?: SensorProperties[]
 }
@@ -43,7 +44,7 @@ export class Platform extends StorageBase implements PlatformProperties {
   public name!: string
   public meta!: any
 
-  public inDeployment!: string
+  public deploymentId!: string
   public position!: Position[]
   public sensor!: Sensor[]
 
@@ -118,7 +119,7 @@ export class Platform extends StorageBase implements PlatformProperties {
     const platform = await this.query(trx).insert(<any>{
       name: e.name,
       meta: e.meta,
-      inDeplyment: e.meta.inDeployment || null,
+      deploymentId: e.meta.inDeployment || null,
     })
     return platform
   }
