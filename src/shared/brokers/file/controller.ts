@@ -33,6 +33,7 @@ export interface FileMetric {
   key: string
   broker: string
   platform: string
+  // TODO: needs changing to reflect standards?
   metric: string
   units: string
   type: string
@@ -287,6 +288,7 @@ export class FileController extends Controller {
                 key: columnKey,
                 broker: request.instanceToBroker(filepath),
                 platform: platformName,
+                // TODO: needs changing to reflect standards
                 metric: column,
                 units: unitMap[column],
                 type: 'Real',

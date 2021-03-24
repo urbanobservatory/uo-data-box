@@ -201,7 +201,7 @@ export class Timeseries extends StorageBase {
 
   public static async getByFriendlyNames(
     platformName: string,
-    metric: string,
+    propertyId: string,
     timeseries: string,
     trx?: Transaction
   ): Promise<Timeseries | undefined> {
@@ -209,7 +209,7 @@ export class Timeseries extends StorageBase {
     if (timeseries !== 'raw') return undefined
 
     const set = await this.namedQuery(
-      `Get timeseries with fuzzy platform '${platformName}' and metric '${metric}' and timeseries '${timeseries}'`,
+      `Get timeseries with fuzzy platform '${platformName}' and observed property '${propertyId}' and timeseries '${timeseries}'`,
       trx
     )
       .where(
@@ -217,7 +217,7 @@ export class Timeseries extends StorageBase {
         '=',
         Sensor.query()
           .select('sensor_id')
-          .where('metric', '~*', fuzzyName(metric))
+          .where('property_id', '~*', fuzzyName(propertyId))
           .andWhere(
             'platform_id',
             '=',
@@ -292,7 +292,7 @@ export class Timeseries extends StorageBase {
       {
         href: `/api/timeseries/${uriName([
           ((parentSensor || parent || {}).parentPlatform || {}).name,
-          (parentSensor || parent || {}).metric,
+          (parentSensor || parent || {}).propertyId,
           'raw',
         ])}`,
         rel: 'self.friendly',
@@ -300,7 +300,7 @@ export class Timeseries extends StorageBase {
       {
         href: `/api/timeseries/${uriName([
           ((parentSensor || parent || {}).parentPlatform || {}).name,
-          (parentSensor || parent || {}).metric,
+          (parentSensor || parent || {}).propertyId,
           'raw',
           'historic',
         ])}`,

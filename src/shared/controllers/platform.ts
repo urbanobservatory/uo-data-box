@@ -129,10 +129,10 @@ export class PlatformController {
       },
       {
         in: 'query',
-        name: 'metric',
+        name: 'property',
         description:
-          'Filter to only include entities with, and sensors therein, matching at least one of the metrics specified. Partial matches on metrics are included, and each word is considered to be additive and case insensitive, so phrases must be surrounded by double quotes. ' +
-          'For example, to return the occupancy and room temperature, but exclude flow temperatures, use `metric=occupied+"room temperature"`.',
+          'Filter to only include entities with, and sensors therein, matching at least one of the observed properties specified. Partial matches on observed property are included, and each word is considered to be additive and case insensitive, so phrases must be surrounded by double quotes. ' +
+          'For example, to return the occupancy and room temperature, but exclude flow temperatures, use `property=occupied+"room temperature"`.',
         required: false,
         type: 'string',
       },

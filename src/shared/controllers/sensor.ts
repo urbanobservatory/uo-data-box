@@ -174,7 +174,8 @@ export class SensorController {
       {
         in: 'path',
         name: 'platform',
-        description: 'Platform name under which to look for the metric.',
+        description:
+          'Platform name under which to look for the observed property.',
         required: true,
         type: 'string',
       },

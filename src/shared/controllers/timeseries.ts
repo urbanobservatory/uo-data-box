@@ -1,5 +1,6 @@
 // FIXME: fix lint
 // @ts-nocheck
+import { property } from 'lodash'
 import {
   JsonController,
   Get,
@@ -32,7 +33,7 @@ const historicCsv = csvTransform((json: any) => {
       'URBAN OBSERVATORY (http://www.urbanobservatory.ac.uk/)',
       'Licence info: http://www.urbanobservatory.ac.uk/licence/',
       `Platform: ${platformName}`,
-      `Metric: ${metricName}`,
+      `Observed Property: ${metricName}`,
       `Platform ID: ${json.timeseries.parentSensor.parentPlatform.platformId}`,
       `Sensor ID: ${json.timeseries.parentSensor.sensorId}`,
       `Timeseries ID: ${json.timeseries.timeseriesId}`,
@@ -328,7 +329,7 @@ export class TimeseriesController {
     })
   }
 
-  @Get('/:platform/:metric/:timeseries')
+  @Get('/:platform/:observedProperty/:timeseries')
   @OnUndefined(404)
   @OpenAPI({
     summary:
@@ -353,14 +354,15 @@ export class TimeseriesController {
       {
         in: 'path',
         name: 'platform',
-        description: 'Platform name under which to look for the metric.',
+        description:
+          'Platform name under which to look for the observed property.',
         required: true,
         type: 'string',
       },
       {
         in: 'path',
-        name: 'metric',
-        description: 'Metric name to retrieve timeseries from.',
+        name: 'observedProperty',
+        description: 'Observed property to retrieve timeseries from.',
         required: true,
         type: 'string',
       },
@@ -377,11 +379,15 @@ export class TimeseriesController {
   })
   async getOneFromFriendlyNames(
     @Param('platform') platform: string,
-    @Param('metric') metric: string,
+    @Param('observedProperty') property: string,
     @Param('timeseries') timeseries: string,
     @Req() request: any
   ) {
-    const ts = await Timeseries.getByFriendlyNames(platform, metric, timeseries)
+    const ts = await Timeseries.getByFriendlyNames(
+      platform,
+      property,
+      timeseries
+    )
     if (!ts) return
     const parentSensor = await Sensor.getSensorFromTimeseries(ts.timeseriesId)
     if (!parentSensor) return
@@ -430,7 +436,7 @@ export class TimeseriesController {
     )
   }
 
-  @Get('/:platform/:metric/:timeseries/historic')
+  @Get('/:platform/:observedProperty/:timeseries/historic')
   @OnUndefined(404)
   @OpenAPI({
     ...openAPIHistoric,
@@ -439,14 +445,15 @@ export class TimeseriesController {
       {
         in: 'path',
         name: 'platform',
-        description: 'Platform name under which to look for the metric.',
+        description:
+          'Platform name under which to look for the observed property.',
         required: true,
         type: 'string',
       },
       {
         in: 'path',
-        name: 'metric',
-        description: 'Metric name to retrieve timeseries from.',
+        name: 'observedProperty',
+        description: 'Observed property name to retrieve timeseries from.',
         required: true,
         type: 'string',
       },
@@ -463,7 +470,7 @@ export class TimeseriesController {
   @UseBefore(historicCsv)
   async getHistoricFromFriendlyNames(
     @Param('platform') platform: string,
-    @Param('metric') metric: string,
+    @Param('observedProperty') property: string,
     @Param('timeseries') timeseries: string,
     @QueryParam('startTime') startTime?: string,
     @QueryParam('endTime') endTime?: string,
@@ -471,7 +478,7 @@ export class TimeseriesController {
   ) {
     const ts = await this.getOneFromFriendlyNames(
       platform,
-      metric,
+      property,
       timeseries,
       request
     )

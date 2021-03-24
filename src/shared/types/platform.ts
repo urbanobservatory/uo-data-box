@@ -176,7 +176,7 @@ export class Platform extends StorageBase implements PlatformProperties {
       .eagerAlgorithm(Platform.JoinEagerAlgorithm)
       .eager('[sensor]')
       .modifyEager('[sensor]', (builder: any) => {
-        builder.select('sensor_id', 'metric')
+        builder.select('sensor_id', 'property_id')
       })
 
     return allEntities
@@ -198,7 +198,7 @@ export class Platform extends StorageBase implements PlatformProperties {
         .limit(platformBatchSize)
         .eager(`[ ${this.defaultEager} ]`)
         .modifyEager('sensor', (builder: any) => {
-          builder.orderBy('metric')
+          builder.orderBy('property_id')
         })
         .modifyEager('sensor.[service]', (builder: any) => {
           builder.orderBy('time', 'desc').limit(1)
@@ -227,7 +227,7 @@ export class Platform extends StorageBase implements PlatformProperties {
   ): Promise<any> {
     const paging = PageHandler.impose(pagination)
     const searchNames = parseSearchTerms(criteria['name'] || '') || []
-    const searchMetrics = parseSearchTerms(criteria['metric'] || '') || []
+    const searchMetrics = parseSearchTerms(criteria['property_id'] || '') || []
 
     if (searchMetrics.length) {
       log.verbose(`Name criteria:`)
@@ -235,7 +235,7 @@ export class Platform extends StorageBase implements PlatformProperties {
     }
 
     if (searchMetrics.length) {
-      log.verbose(`Metric criteria:`)
+      log.verbose(`Observed property criteria:`)
       searchMetrics.forEach((m: string) => log.verbose(`  ${m}`))
     }
 
@@ -261,7 +261,7 @@ export class Platform extends StorageBase implements PlatformProperties {
         )
         // Filtering options below...
         .modifyEager('sensor', (builder: any) => {
-          builder.orderBy('metric').onBuild((builder: any) => {
+          builder.orderBy('property_id').onBuild((builder: any) => {
             // Both entities and sensors must be filtered, if we have a source restriction
             if (criteria['brokerage:sourceId']) {
               builder.whereIn(
@@ -275,7 +275,7 @@ export class Platform extends StorageBase implements PlatformProperties {
             if (searchMetrics.length) {
               builder.where((searchBuilder: any) =>
                 searchMetrics.forEach((m: string) =>
-                  searchBuilder.orWhere('metric', 'ILIKE', `%${m}%`)
+                  searchBuilder.orWhere('property_id', 'ILIKE', `%${m}%`)
                 )
               )
             }
@@ -317,7 +317,7 @@ export class Platform extends StorageBase implements PlatformProperties {
                   if (searchMetrics.length) {
                     metricSearchBuilder.where((searchBuilder: any) =>
                       searchMetrics.forEach((m: string) =>
-                        searchBuilder.orWhere('metric', 'ILIKE', `%${m}%`)
+                        searchBuilder.orWhere('property_id', 'ILIKE', `%${m}%`)
                       )
                     )
                   }

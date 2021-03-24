@@ -21,7 +21,7 @@ export class SummaryController {
         sensor: {
           type: 'object',
           description:
-            'A direct mapping of sensor IDs to their respective metrics, with all other data omitted.',
+            'A direct mapping of sensor IDs to their respective observed properties, with all other data omitted.',
         },
       },
       example: {
